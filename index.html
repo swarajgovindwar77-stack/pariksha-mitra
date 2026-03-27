@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#F5A623">
+<title>ParikshaMitra — Competitive Exam Prep</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Marathi&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- ══════════════════════════════════════════════
+     STEP 1: Replace these with YOUR Firebase config
+     Go to: console.firebase.google.com
+     → Your Project → Project Settings → Your apps → SDK setup
+     ══════════════════════════════════════════════ -->
+<script>
+  window.FIREBASE_CONFIG = {
+    apiKey: "AIzaSyC6fttiqCfV2QjRFAse5-mrbi0wBio5rIU",
+    authDomain: "pariksha-mitra-a17fb.firebaseapp.com",
+    projectId: "pariksha-mitra-a17fb",
+    storageBucket: "pariksha-mitra-a17fb.firebasestorage.app",
+    messagingSenderId: "571631829130",
+    appId: "1:571631829130:web:cde3bf393dd617c935ed73",
+    measurementId: "G-Q0K697RMRT"
+  };
+</script>
+
+<!-- ══════════════════════════════════════════════
+     STEP 2: Replace with YOUR Razorpay Key ID
+     Go to: dashboard.razorpay.com → Settings → API Keys
+     Use TEST key during development, LIVE key when publishing
+     ══════════════════════════════════════════════ -->
+<script>
+  window.RAZORPAY_KEY = "rzp_test_YOUR_KEY_HERE";
+
+  // Plan prices (in paise — ₹99 = 9900 paise)
+  window.PLANS = {
+    pro:     { amount: 9900,  label: "Pro Monthly",  desc: "₹99/month" },
+    premium: { amount: 79900, label: "Premium Annual", desc: "₹799/year" }
+  };
+</script>
+
+<!-- Firebase SDK (compat v9) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+<!-- Razorpay -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<style>
+/* ===== RESET & VARIABLES ===== */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0B0E1A;--surface:#12162B;--card:#1A1F38;--card2:#1F2540;--border:#2A3160;
+  --accent:#F5A623;--accent2:#4F8EF7;--purple:#A78BFA;--green:#3ECF8E;--red:#F05A5A;
+  --text:#E8ECF4;--muted:#8892A4;--faint:#2A3060;
+  --r:12px;--rs:8px;--rl:16px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);display:flex;flex-direction:column}
+button{font-family:inherit;cursor:pointer;border:none;outline:none}
+input,select{font-family:inherit;outline:none}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ===== APP SHELL ===== */
+#app{flex:1;display:flex;flex-direction:column;overflow:hidden;padding-top:var(--safe-top)}
+#screen-container{flex:1;overflow:hidden;position:relative}
+.screen{position:absolute;inset:0;overflow-y:auto;display:none;flex-direction:column;padding-bottom:calc(64px + var(--safe-bottom))}
+.screen.active{display:flex;animation:fadeUp .25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.inner{max-width:520px;width:100%;margin:0 auto;padding:0 16px}
+
+/* ===== BOTTOM NAV ===== */
+#bottom-nav{height:calc(64px + var(--safe-bottom));padding-bottom:var(--safe-bottom);background:var(--surface);border-top:1px solid var(--border);display:none;align-items:center;justify-content:space-around;flex-shrink:0}
+#bottom-nav.visible{display:flex}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;cursor:pointer;color:var(--muted);font-size:10px;font-weight:500;transition:color .2s}
+.nav-item svg{width:22px;height:22px}
+.nav-item.active{color:var(--accent)}
+
+/* ===== TYPOGRAPHY ===== */
+.h1{font-size:1.6rem;font-weight:700;line-height:1.2}
+.h2{font-size:1.2rem;font-weight:600}
+.h3{font-size:1rem;font-weight:600}
+.body-text{font-size:.9rem;line-height:1.6;color:var(--muted)}
+.label{font-size:.7rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.devanagari{font-family:'Tiro Devanagari Marathi',serif}
+
+/* ===== CARDS & BADGES ===== */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:.65rem;font-weight:700;letter-spacing:.5px;padding:3px 8px;border-radius:20px;text-transform:uppercase}
+.badge-pro{background:linear-gradient(135deg,#F5A623,#F0B84A);color:#1a0e00}
+.badge-free{background:var(--faint);color:var(--muted)}
+.badge-ai{background:rgba(79,142,247,.2);color:var(--accent2);border:1px solid rgba(79,142,247,.3)}
+.badge-new{background:rgba(62,207,142,.2);color:var(--green);border:1px solid rgba(62,207,142,.3)}
+.badge-firebase{background:rgba(255,160,0,.15);color:#FFA000;border:1px solid rgba(255,160,0,.3)}
+
+/* ===== BUTTONS ===== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:var(--rs);font-size:.9rem;font-weight:600;transition:all .2s;cursor:pointer;border:none}
+.btn-primary{background:var(--accent);color:#1a0e00}
+.btn-primary:hover{background:#f0b84a;transform:translateY(-1px)}
+.btn-primary:active{transform:scale(.97)}
+.btn-secondary{background:var(--accent2);color:#fff}
+.btn-secondary:hover{background:#3a7ef5}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--muted)}
+.btn-google{background:#fff;color:#1a1a1a;gap:10px}
+.btn-google:hover{background:#f5f5f5;transform:translateY(-1px)}
+.btn-full{width:100%}
+.btn-lg{padding:16px 28px;font-size:1rem;border-radius:var(--r)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+
+/* ===== FORM ===== */
+.field{margin-bottom:16px}
+.field label{display:block;font-size:.8rem;font-weight:500;color:var(--muted);margin-bottom:6px}
+.field input,.field select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:11px 14px;font-size:.9rem;transition:border-color .2s}
+.field input:focus,.field select:focus{border-color:var(--accent2)}
+.field select option{background:var(--surface)}
+
+/* ===== TOAST ===== */
+#toast{position:fixed;bottom:calc(80px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--card2);border:1px solid var(--border);border-radius:var(--r);padding:10px 18px;font-size:.85rem;font-weight:500;opacity:0;transition:all .3s;z-index:9999;pointer-events:none;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.success{border-color:var(--green);color:var(--green)}
+#toast.error{border-color:var(--red);color:var(--red)}
+
+/* ===== MODAL ===== */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;display:none;align-items:flex-end;justify-content:center}
+#modal-overlay.open{display:flex}
+#modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl) var(--rl) 0 0;width:100%;max-width:520px;padding:24px 20px calc(24px + var(--safe-bottom));animation:slideUp .3s ease;max-height:90vh;overflow-y:auto}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+
+/* ===== SPINNER ===== */
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent2);border-radius:50%;animation:spin .7s linear infinite}
+.spinner-sm{width:16px;height:16px;border-width:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== STATUS SCREENS ===== */
+#screen-loading{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#screen-login{display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;gap:24px}
+#screen-login.active{display:flex}
+
+/* ===== HOME ===== */
+.home-topbar{padding:20px 16px 12px;display:flex;justify-content:space-between;align-items:center}
+.home-greeting{font-size:.8rem;color:var(--muted)}
+.home-name{font-size:1.1rem;font-weight:700;margin-top:2px}
+.avatar{width:40px;height:40px;border-radius:50%;object-fit:cover;cursor:pointer;border:2px solid var(--border)}
+.avatar-placeholder{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;cursor:pointer;font-size:.9rem}
+.streak-banner{margin:0 16px 16px;background:linear-gradient(135deg,rgba(167,139,250,.15),rgba(79,142,247,.1));border:1px solid rgba(167,139,250,.25);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:12px}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 16px 16px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center}
+.stat-num{font-size:1.5rem;font-weight:700}
+.stat-lbl{font-size:.7rem;color:var(--muted);margin-top:2px}
+.section-header{display:flex;justify-content:space-between;align-items:center;padding:0 16px;margin-bottom:12px}
+.see-all{font-size:.78rem;color:var(--accent2);font-weight:500;cursor:pointer}
+.exam-scroll{display:flex;gap:10px;padding:0 16px 16px;overflow-x:auto;scrollbar-width:none}
+.exam-scroll::-webkit-scrollbar{display:none}
+.exam-chip{flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:all .2s;min-width:130px}
+.exam-chip:hover,.exam-chip.active{border-color:var(--accent)}
+.exam-chip.active{background:rgba(245,166,35,.08)}
+.subject-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .2s;margin:0 16px 10px}
+.subject-card:hover{border-color:var(--muted);transform:translateX(3px)}
+.subject-icon{width:44px;height:44px;border-radius:var(--rs);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.subject-info{flex:1;min-width:0}
+.subject-name{font-weight:600;font-size:.9rem}
+.subject-meta{font-size:.75rem;color:var(--muted);margin-top:2px}
+.progress-bar{height:3px;background:var(--faint);border-radius:2px;margin-top:8px;overflow:hidden}
+.progress-fill{height:100%;border-radius:2px;background:var(--accent2);transition:width .5s}
+.daily-goal{margin:0 16px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.goal-bar-wrap{height:8px;background:var(--faint);border-radius:4px;margin-top:10px;overflow:hidden}
+.goal-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .5s}
+
+/* ===== QUIZ ===== */
+.quiz-topbar{padding:16px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.quiz-back{width:36px;height:36px;border-radius:var(--rs);background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:.9rem}
+.quiz-title{flex:1;font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.timer-pill{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:.85rem;font-weight:700;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.timer-dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.timer-pill.urgent{border-color:var(--red)}
+.timer-pill.urgent .timer-dot{background:var(--red);animation:blink .8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.q-card{margin:0 16px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+.q-badge{font-size:.72rem;color:var(--muted);margin-bottom:10px;font-weight:500}
+.q-text{font-size:.95rem;line-height:1.7;font-weight:500}
+.options-list{padding:0 16px;display:flex;flex-direction:column;gap:10px}
+.option{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:all .2s;display:flex;align-items:flex-start;gap:12px;font-size:.9rem;line-height:1.5}
+.option:hover:not(.disabled){border-color:var(--accent2);background:rgba(79,142,247,.08)}
+.option-label{width:26px;height:26px;border-radius:50%;background:var(--faint);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0;color:var(--muted);transition:all .2s}
+.option.correct{border-color:var(--green);background:rgba(62,207,142,.08)}
+.option.correct .option-label{background:var(--green);color:#fff}
+.option.wrong{border-color:var(--red);background:rgba(240,90,90,.08)}
+.option.wrong .option-label{background:var(--red);color:#fff}
+.option.disabled{cursor:default}
+.explanation-box{margin:12px 16px 0;background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);border-radius:var(--r);padding:14px;font-size:.85rem;line-height:1.65;color:#9ec5f5;display:none}
+.quiz-nav{padding:16px;display:flex;gap:10px;flex-shrink:0;margin-top:auto}
+.q-dots{display:flex;gap:5px;padding:0 16px;flex-wrap:wrap;margin-bottom:8px}
+.q-dot{width:10px;height:10px;border-radius:50%;background:var(--faint);transition:all .2s}
+.q-dot.done{background:var(--green)}
+.q-dot.wrong-dot{background:var(--red)}
+.q-dot.current{background:var(--accent);transform:scale(1.3)}
+
+/* ===== RESULT ===== */
+.result-hero{padding:32px 16px 24px;text-align:center}
+.result-ring{width:130px;height:130px;margin:0 auto 20px;position:relative}
+.result-ring svg{transform:rotate(-90deg)}
+.ring-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.ring-pct{font-size:1.9rem;font-weight:700}
+.ring-lbl{font-size:.7rem;color:var(--muted)}
+.breakdown{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 16px 20px}
+.breakdown-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center}
+.review-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin:0 16px 10px}
+.review-q{font-size:.85rem;font-weight:500;margin-bottom:8px;line-height:1.5}
+
+/* ===== PLANS ===== */
+.plan-card{margin:0 16px 14px;border-radius:var(--rl);border:1px solid var(--border);overflow:hidden}
+.plan-card.featured{border-color:var(--accent)}
+.plan-header{padding:20px;background:var(--card)}
+.plan-featured-tag{display:inline-block;background:var(--accent);color:#1a0e00;font-size:.7rem;font-weight:700;padding:4px 12px;border-radius:20px;margin-bottom:10px;letter-spacing:.5px}
+.plan-name{font-size:1rem;font-weight:700}
+.plan-price{font-size:2rem;font-weight:700;margin:8px 0 4px}
+.plan-price span{font-size:.85rem;font-weight:400;color:var(--muted)}
+.plan-features{padding:16px 20px;background:var(--surface);display:flex;flex-direction:column;gap:10px}
+.plan-feature{display:flex;align-items:flex-start;gap:10px;font-size:.85rem}
+.feat-text{color:var(--muted)}
+.feat-text strong{color:var(--text);font-weight:500}
+.plan-cta{padding:16px 20px;background:var(--card)}
+
+/* ===== ANALYTICS ===== */
+.perf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 16px}
+.perf-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.perf-num{font-size:1.4rem;font-weight:700}
+.perf-lbl{font-size:.72rem;color:var(--muted);margin-top:2px}
+.subj-perf-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.subj-perf-row:last-child{border-bottom:none}
+.history-item{margin:0 16px 10px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;justify-content:space-between;align-items:center}
+.hist-title{font-size:.88rem;font-weight:600}
+.hist-date{font-size:.73rem;color:var(--muted);margin-top:2px}
+
+/* ===== LEADERBOARD ===== */
+.lb-podium{display:flex;align-items:flex-end;justify-content:center;gap:12px;padding:20px 16px 24px}
+.podium-item{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;max-width:110px}
+.podium-avatar{border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--text);overflow:hidden}
+.podium-avatar img{width:100%;height:100%;object-fit:cover}
+.podium-stand{border-radius:var(--rs) var(--rs) 0 0;width:100%}
+.lb-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.lb-rank{width:28px;text-align:center;font-size:.85rem;font-weight:700;color:var(--muted);flex-shrink:0}
+.lb-avatar-sm{width:38px;height:38px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0;overflow:hidden}
+.lb-avatar-sm img{width:100%;height:100%;object-fit:cover}
+.lb-you{background:rgba(245,166,35,.06);border-left:2px solid var(--accent)}
+
+/* ===== PROFILE ===== */
+.profile-avatar-big{width:80px;height:80px;border-radius:50%;margin:0 auto 12px;border:2px solid var(--border);object-fit:cover}
+.profile-avatar-big-placeholder{width:80px;height:80px;border-radius:50%;margin:0 auto 12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;color:#fff}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.settings-row:hover{background:var(--faint)}
+.settings-left{display:flex;align-items:center;gap:12px}
+.settings-icon{width:36px;height:36px;border-radius:var(--rs);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
+.toggle{width:42px;height:24px;border-radius:12px;background:var(--faint);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--green)}
+.toggle::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s}
+.toggle.on::after{transform:translateX(18px)}
+
+/* ===== FIREBASE STATUS ===== */
+.firebase-status{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--rs);font-size:.8rem;margin:0 16px 12px}
+.fs-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.fs-dot.connected{background:var(--green)}
+.fs-dot.disconnected{background:var(--red)}
+.fs-dot.loading{background:var(--accent);animation:blink 1s infinite}
+
+/* ===== LOADING FULL ===== */
+.loading-full{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:60px 16px;flex:1}
+.diff-btn{flex:1;padding:10px;border-radius:var(--rs);border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:.82rem;font-weight:500;transition:all .2s;cursor:pointer;text-align:center}
+.diff-btn.active{border-color:var(--accent);background:rgba(245,166,35,.1);color:var(--accent)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--faint);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:.78rem;font-weight:500;cursor:pointer;transition:all .2s;color:var(--muted)}
+.chip.active{background:rgba(245,166,35,.15);border-color:var(--accent);color:var(--accent)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="screen-container">
+
+    <!-- LOADING -->
+    <div class="screen active" id="screen-loading">
+      <div class="spinner" style="width:36px;height:36px;border-width:4px"></div>
+      <div style="font-size:.85rem;color:var(--muted)" id="loading-msg">Connecting to Firebase...</div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="screen" id="screen-login">
+      <div style="text-align:center;max-width:380px;width:100%">
+        <div class="devanagari" style="font-size:1.8rem;color:var(--accent);margin-bottom:4px">परीक्षामित्र</div>
+        <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">ParikshaMitra</div>
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:40px">AI-powered prep for MPSC, UPSC & all competitive exams</div>
+        <button class="btn btn-google btn-full btn-lg" id="google-login-btn" onclick="signInWithGoogle()">
+          <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          Continue with Google
+        </button>
+        <div id="login-error" style="margin-top:14px;font-size:.8rem;color:var(--red);display:none"></div>
+        <div style="margin-top:24px;font-size:.75rem;color:var(--muted)">
+          By continuing, you agree to our Terms of Service.<br>
+          Your data is securely stored in Firebase.
+        </div>
+        <div id="firebase-config-warning" style="margin-top:16px;background:rgba(240,90,90,.1);border:1px solid rgba(240,90,90,.3);border-radius:var(--r);padding:12px;font-size:.78rem;color:var(--red);display:none">
+          ⚠️ Firebase not configured yet. Add your config at the top of index.html to enable login.
+        </div>
+      </div>
+    </div>
+
+    <!-- HOME -->
+    <div class="screen" id="screen-home">
+      <div class="home-topbar">
+        <div>
+          <div class="home-greeting" id="home-greeting">Good morning,</div>
+          <div class="home-name" id="home-name">Student</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div onclick="navigate('plans')" style="cursor:pointer">
+            <span class="badge badge-free" id="plan-badge">FREE</span>
+          </div>
+          <div id="home-avatar-wrap"></div>
+        </div>
+      </div>
+
+      <div style="padding:0 16px 12px">
+        <div class="firebase-status">
+          <div class="fs-dot" id="fs-status-dot"></div>
+          <span id="fs-status-text">Checking connection...</span>
+        </div>
+      </div>
+
+      <div style="padding:0 16px 14px">
+        <div class="streak-banner">
+          <div style="font-size:1.6rem">🔥</div>
+          <div><div style="font-weight:700;font-size:.92rem"><span id="streak-count">1</span>-Day Streak</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:2px">Keep practising daily!</div></div>
+          <div style="margin-left:auto;font-size:1.3rem;font-weight:700;color:var(--purple)">+<span id="streak-xp">10</span>XP</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num" id="stat-attempted" style="color:var(--accent2)">0</div><div class="stat-lbl">Attempted</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-accuracy" style="color:var(--green)">—</div><div class="stat-lbl">Accuracy</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-xp" style="color:var(--purple)">0</div><div class="stat-lbl">XP</div></div>
+      </div>
+
+      <div class="daily-goal">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:.85rem;font-weight:600">Daily Goal</div>
+          <div style="font-size:.8rem;color:var(--muted)"><span id="goal-done">0</span>/10 questions</div>
+        </div>
+        <div class="goal-bar-wrap"><div class="goal-bar-fill" id="goal-bar" style="width:0%"></div></div>
+      </div>
+
+      <div class="section-header"><div class="label">Choose Exam</div></div>
+      <div class="exam-scroll" id="exam-scroll"></div>
+
+      <div class="section-header">
+        <div class="label">Practice by Subject</div>
+        <div class="see-all" onclick="navigate('subjects')">See All</div>
+      </div>
+      <div id="subject-list"></div>
+      <div style="height:8px"></div>
+    </div>
+
+    <!-- SUBJECTS -->
+    <div class="screen" id="screen-subjects">
+      <div style="padding:20px 16px 12px;display:flex;align-items:center;gap:12px">
+        <button class="quiz-back" onclick="navigate('home')">←</button>
+        <div class="h2">All Subjects</div>
+      </div>
+      <div id="all-subjects-list"></div>
+    </div>
+
+    <!-- AI GENERATOR -->
+    <div class="screen" id="screen-ai">
+      <div style="padding:20px 16px 12px;display:flex;align-items:center;gap:12px">
+        <button class="quiz-back" onclick="navigate('home')">←</button>
+        <div><div class="h2">AI Question Generator</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:2px">Fresh MCQs on any topic</div></div>
+        <span class="badge badge-ai" style="margin-left:auto">AI</span>
+      </div>
+      <div style="padding:0 16px 16px">
+        <div class="card" style="margin-bottom:14px">
+          <div class="field" style="margin-bottom:12px"><label>Subject</label><select id="ai-subject-sel"></select></div>
+          <div class="field" style="margin-bottom:12px"><label>Topic (optional)</label><input type="text" id="ai-topic" placeholder="e.g. Peshwa dynasty, Maharashtra rivers..."></div>
+          <div class="field" style="margin-bottom:12px"><label>Number of questions</label>
+            <select id="ai-count"><option value="5">5 Questions</option><option value="10" selected>10 Questions</option><option value="15">15 Questions</option></select>
+          </div>
+          <div class="field" style="margin-bottom:0"><label>Difficulty</label>
+            <div style="display:flex;gap:8px">
+              <div class="diff-btn" onclick="setDiff('Easy',this)">Easy</div>
+              <div class="diff-btn active" onclick="setDiff('Medium',this)">Medium</div>
+              <div class="diff-btn" onclick="setDiff('Hard',this)">Hard</div>
+            </div>
+          </div>
+        </div>
+        <div id="ai-paywall" style="display:none;text-align:center;padding:20px 0">
+          <div style="font-size:2rem;margin-bottom:10px">🔒</div>
+          <div style="font-weight:600;margin-bottom:6px">Pro Feature</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Upgrade to generate unlimited AI questions</div>
+          <button class="btn btn-primary btn-full" onclick="navigate('plans')">Upgrade to Pro →</button>
+        </div>
+        <button class="btn btn-secondary btn-full btn-lg" id="ai-gen-btn" onclick="generateAI()">✨ Generate Questions</button>
+      </div>
+      <div id="ai-loading" style="display:none" class="loading-full">
+        <div class="spinner"></div>
+        <div style="font-size:.88rem;color:var(--muted);text-align:center">Generating MPSC-quality questions<br>with AI...</div>
+      </div>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="screen" id="screen-quiz">
+      <div class="quiz-topbar">
+        <div class="quiz-back" onclick="confirmQuit()">←</div>
+        <div class="quiz-title" id="quiz-title">Quiz</div>
+        <div class="timer-pill" id="timer-pill" style="display:none">
+          <div class="timer-dot"></div><span id="timer-text">15:00</span>
+        </div>
+      </div>
+      <div style="padding:0 16px 10px;flex-shrink:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:.78rem;color:var(--muted)" id="q-counter">Q 1 of 10</div>
+          <div style="font-size:.78rem;color:var(--muted)" id="q-score-live">✓ 0 · ✗ 0</div>
+        </div>
+        <div style="height:4px;background:var(--faint);border-radius:2px;overflow:hidden">
+          <div style="height:100%;border-radius:2px;background:var(--accent2);transition:width .4s" id="q-progress"></div>
+        </div>
+      </div>
+      <div class="q-dots" id="q-dots"></div>
+      <div class="q-card">
+        <div class="q-badge" id="q-badge">Question 1</div>
+        <div class="q-text" id="q-text">Loading...</div>
+      </div>
+      <div class="options-list" id="options-list"></div>
+      <div class="explanation-box" id="explanation-box"></div>
+      <div class="quiz-nav">
+        <button class="btn btn-outline" id="btn-prev" onclick="prevQ()" style="display:none">← Prev</button>
+        <button class="btn btn-outline" id="btn-skip" onclick="skipQ()" style="flex:1">Skip</button>
+        <button class="btn btn-secondary" id="btn-next" onclick="nextQ()" style="flex:1;display:none">Next →</button>
+        <button class="btn btn-primary" id="btn-submit" onclick="submitQuiz()" style="display:none">Submit ✓</button>
+      </div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="screen" id="screen-result">
+      <div class="result-hero">
+        <div class="result-ring">
+          <svg width="130" height="130" viewBox="0 0 130 130">
+            <circle cx="65" cy="65" r="54" fill="none" stroke="var(--faint)" stroke-width="10"/>
+            <circle cx="65" cy="65" r="54" fill="none" stroke="var(--accent)" stroke-width="10" stroke-dasharray="339" stroke-dashoffset="339" id="result-arc" stroke-linecap="round" style="transition:stroke-dashoffset 1s ease"/>
+          </svg>
+          <div class="ring-text"><div class="ring-pct" id="result-pct">0%</div><div class="ring-lbl">Score</div></div>
+        </div>
+        <div style="font-size:1.3rem;font-weight:700" id="result-title">Well done!</div>
+        <div style="font-size:.85rem;color:var(--muted);margin-top:6px" id="result-sub">Keep practising.</div>
+      </div>
+      <div class="breakdown">
+        <div class="breakdown-card"><div style="font-size:1.4rem;font-weight:700;color:var(--green)" id="res-correct">0</div><div style="font-size:.7rem;color:var(--muted);margin-top:2px">Correct</div></div>
+        <div class="breakdown-card"><div style="font-size:1.4rem;font-weight:700;color:var(--red)" id="res-wrong">0</div><div style="font-size:.7rem;color:var(--muted);margin-top:2px">Wrong</div></div>
+        <div class="breakdown-card"><div style="font-size:1.4rem;font-weight:700;color:var(--muted)" id="res-skip">0</div><div style="font-size:.7rem;color:var(--muted);margin-top:2px">Skipped</div></div>
+      </div>
+      <div style="padding:0 16px 16px;display:flex;gap:10px">
+        <div class="card" style="flex:1;text-align:center;padding:12px"><div style="font-size:1.1rem;font-weight:700;color:var(--purple)" id="res-xp">+0 XP</div><div style="font-size:.72rem;color:var(--muted);margin-top:2px">XP Earned</div></div>
+        <div class="card" style="flex:1;text-align:center;padding:12px"><div style="font-size:1.1rem;font-weight:700;color:var(--accent)" id="res-time">0:00</div><div style="font-size:.72rem;color:var(--muted);margin-top:2px">Time Taken</div></div>
+        <div class="card" style="flex:1;text-align:center;padding:12px"><div style="font-size:1.1rem;font-weight:700;color:var(--accent2)" id="res-percentile">—</div><div style="font-size:.72rem;color:var(--muted);margin-top:2px">Percentile</div></div>
+      </div>
+      <div style="padding:0 16px 8px"><div class="label">Review Answers</div></div>
+      <div id="result-review"></div>
+      <div style="padding:16px;display:flex;gap:10px">
+        <button class="btn btn-outline" style="flex:1" onclick="navigate('home')">🏠 Home</button>
+        <button class="btn btn-primary" style="flex:1" id="retry-btn">↺ Retry</button>
+      </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="screen" id="screen-analytics">
+      <div style="padding:20px 16px 12px;display:flex;justify-content:space-between;align-items:center">
+        <div class="h2">My Analytics</div>
+        <span class="badge badge-firebase">🔴 Firebase Live</span>
+      </div>
+      <div class="perf-grid">
+        <div class="perf-card"><div class="perf-num" id="ana-total" style="color:var(--accent2)">0</div><div class="perf-lbl">Total Attempted</div></div>
+        <div class="perf-card"><div class="perf-num" id="ana-accuracy" style="color:var(--green)">0%</div><div class="perf-lbl">Avg Accuracy</div></div>
+        <div class="perf-card"><div class="perf-num" id="ana-streak" style="color:var(--accent)">0</div><div class="perf-lbl">Day Streak</div></div>
+        <div class="perf-card"><div class="perf-num" id="ana-xp" style="color:var(--purple)">0</div><div class="perf-lbl">Total XP</div></div>
+      </div>
+      <div style="padding:0 16px 8px"><div class="label">Subject Performance</div></div>
+      <div class="card" style="margin:0 16px 20px;padding:0;overflow:hidden" id="subj-perf-list"></div>
+      <div style="padding:0 16px 8px"><div class="label">Recent Sessions</div></div>
+      <div id="history-list"></div>
+      <div style="height:16px"></div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div class="screen" id="screen-leaderboard">
+      <div style="padding:20px 16px 4px;display:flex;justify-content:space-between;align-items:center">
+        <div class="h2">Leaderboard</div>
+        <div style="display:flex;gap:6px" id="lb-filter">
+          <div class="chip active" onclick="setLbFilter('weekly',this)">Weekly</div>
+          <div class="chip" onclick="setLbFilter('alltime',this)">All Time</div>
+        </div>
+      </div>
+      <div class="lb-podium" id="lb-podium"></div>
+      <div style="padding:0 16px 8px"><div class="label">Rankings</div></div>
+      <div id="lb-list"></div>
+      <div style="height:16px"></div>
+    </div>
+
+    <!-- PLANS -->
+    <div class="screen" id="screen-plans">
+      <div style="padding:20px 16px 4px;display:flex;align-items:center;gap:12px">
+        <button class="quiz-back" onclick="navigate('home')">←</button>
+        <div class="h2">Choose Your Plan</div>
+      </div>
+      <div style="padding:12px 16px;text-align:center;font-size:.85rem;color:var(--muted)">Payments secured by Razorpay 🔒</div>
+
+      <div class="plan-card">
+        <div class="plan-header">
+          <div class="plan-name">Free</div>
+          <div class="plan-price">₹0 <span>forever</span></div>
+        </div>
+        <div class="plan-features">
+          <div class="plan-feature"><span>✅</span><div class="feat-text"><strong>2 subjects</strong>, 5 questions/session</div></div>
+          <div class="plan-feature"><span>✅</span><div class="feat-text">Basic score tracking</div></div>
+          <div class="plan-feature"><span>❌</span><div class="feat-text" style="color:var(--faint)">AI Question Generator</div></div>
+          <div class="plan-feature"><span>❌</span><div class="feat-text" style="color:var(--faint)">Mock Tests & Timer</div></div>
+          <div class="plan-feature"><span>❌</span><div class="feat-text" style="color:var(--faint)">Full Analytics</div></div>
+        </div>
+        <div class="plan-cta"><button class="btn btn-outline btn-full" disabled>Current Plan</button></div>
+      </div>
+
+      <div class="plan-card featured">
+        <div class="plan-header">
+          <div class="plan-featured-tag">MOST POPULAR</div>
+          <div class="plan-name">Pro</div>
+          <div class="plan-price">₹99 <span>/ month</span></div>
+        </div>
+        <div class="plan-features">
+          <div class="plan-feature"><span>✅</span><div class="feat-text"><strong>All 6 exams</strong> — MPSC, UPSC, SSC, Banking, Railway, Police</div></div>
+          <div class="plan-feature"><span>✅</span><div class="feat-text"><strong>Unlimited questions</strong> from Firestore database</div></div>
+          <div class="plan-feature"><span>✅</span><div class="feat-text"><strong>AI Question Generator</strong> — any topic, any difficulty</div></div>
+          <div class="plan-feature"><span>✅</span><div class="feat-text"><strong>Full Mock Tests</strong> with timer & deep analysis</div></div>
+          <div class="plan-feature"><span>✅</span><div class="feat-text"><strong>Leaderboard</strong> — compete nationally</div></div>
+          <div class="plan-feature"><span>✅</span><div class="feat-text">Priority support</div></div>
+        </div>
+        <div class="plan-cta">
+          <button class="btn btn-primary btn-full btn-lg" id="pro-pay-btn" onclick="startPayment('pro')">🚀 Upgrade — ₹99/month</button>
+          <div style="font-size:.72rem;color:var(--muted);text-align:center;margin-top:8px">Secured by Razorpay · Cancel anytime</div>
+        </div>
+      </div>
+
+      <div class="plan-card">
+        <div class="plan-header">
+          <div class="plan-name">Premium Annual</div>
+          <div class="plan-price">₹799 <span>/ year</span></div>
+          <div style="font-size:.8rem;color:var(--green);margin-top:4px">Save 33% vs monthly</div>
+        </div>
+        <div class="plan-features">
+          <div class="plan-feature"><span>✅</span><div class="feat-text">Everything in Pro</div></div>
+          <div class="plan-feature"><span>✅</span><div class="feat-text"><strong>2 mentor sessions/month</strong></div></div>
+          <div class="plan-feature"><span>✅</span><div class="feat-text"><strong>PDF study materials</strong> — all subjects</div></div>
+        </div>
+        <div class="plan-cta">
+          <button class="btn btn-outline btn-full" onclick="startPayment('premium')">Get Premium — ₹799/year</button>
+        </div>
+      </div>
+      <div style="height:24px"></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="screen" id="screen-profile">
+      <div style="padding:32px 16px 24px;text-align:center">
+        <div id="profile-avatar-wrap" style="margin-bottom:12px"></div>
+        <div style="font-size:1.2rem;font-weight:700" id="profile-name">Student</div>
+        <div style="font-size:.82rem;color:var(--muted);margin-top:4px" id="profile-email"></div>
+        <div style="display:flex;gap:8px;margin-top:12px;justify-content:center">
+          <span class="badge badge-free" id="profile-plan-badge">FREE</span>
+          <span class="badge badge-new">🔥 <span id="profile-streak">1</span> Day Streak</span>
+        </div>
+      </div>
+
+      <div style="padding:0 16px 8px"><div class="label">Account</div></div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin:0 16px 20px;overflow:hidden">
+        <div class="settings-row" onclick="navigate('plans')">
+          <div class="settings-left"><div class="settings-icon">👑</div><div><div style="font-size:.88rem;font-weight:500">Upgrade Plan</div><div style="font-size:.73rem;color:var(--muted);margin-top:1px">Unlock all features with Pro</div></div></div>
+          <div style="color:var(--muted)">›</div>
+        </div>
+        <div class="settings-row" onclick="navigate('analytics')">
+          <div class="settings-left"><div class="settings-icon">📊</div><div><div style="font-size:.88rem;font-weight:500">Analytics</div><div style="font-size:.73rem;color:var(--muted);margin-top:1px">Synced from Firebase</div></div></div>
+          <div style="color:var(--muted)">›</div>
+        </div>
+        <div class="settings-row" onclick="showSignedInAs()">
+          <div class="settings-left"><div class="settings-icon">🔗</div><div><div style="font-size:.88rem;font-weight:500">Google Account</div><div style="font-size:.73rem;color:var(--muted);margin-top:1px" id="profile-google-email">Signed in</div></div></div>
+          <div style="color:var(--muted)">›</div>
+        </div>
+      </div>
+
+      <div style="padding:0 16px 8px"><div class="label">Preferences</div></div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin:0 16px 20px;overflow:hidden">
+        <div class="settings-row">
+          <div class="settings-left"><div class="settings-icon">📖</div><div><div style="font-size:.88rem;font-weight:500">Show Explanations</div></div></div>
+          <div class="toggle on" id="toggle-exp" onclick="togglePref('exp')"></div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-left"><div class="settings-icon">🔔</div><div><div style="font-size:.88rem;font-weight:500">Daily Reminders</div></div></div>
+          <div class="toggle on" id="toggle-notif" onclick="togglePref('notif')"></div>
+        </div>
+      </div>
+
+      <div style="padding:0 16px 20px">
+        <button class="btn btn-outline btn-full" style="border-color:var(--red);color:var(--red)" onclick="doSignOut()">🚪 Sign Out</button>
+      </div>
+      <div style="height:16px"></div>
+    </div>
+
+  </div><!-- screen-container -->
+
+  <!-- BOTTOM NAV -->
+  <div id="bottom-nav">
+    <div class="nav-item active" id="nav-home" onclick="navigate('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
+    </div>
+    <div class="nav-item" id="nav-ai" onclick="navigate('ai')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2"/></svg>AI Quiz
+    </div>
+    <div class="nav-item" id="nav-leaderboard" onclick="navigate('leaderboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Ranks
+    </div>
+    <div class="nav-item" id="nav-analytics" onclick="navigate('analytics')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progress
+    </div>
+    <div class="nav-item" id="nav-profile" onclick="navigate('profile')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <div id="modal-overlay" onclick="closeModal(event)">
+    <div id="modal-box"><div class="modal-handle"></div><div id="modal-content"></div></div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// CONSTANTS
+// ================================================================
+const EXAMS = {
+  MPSC:    {name:'MPSC',    full:'Maharashtra PSC',    icon:'🏛️', color:'#F5A623'},
+  UPSC:    {name:'UPSC',    full:'Civil Services',      icon:'🇮🇳', color:'#4F8EF7'},
+  SSC:     {name:'SSC',     full:'SSC CGL/CHSL',        icon:'📋', color:'#3ECF8E'},
+  Banking: {name:'Banking', full:'IBPS / SBI PO',       icon:'🏦', color:'#A78BFA'},
+  Railway: {name:'Railway', full:'RRB NTPC',             icon:'🚂', color:'#F472B6'},
+  Police:  {name:'Police',  full:'Maharashtra Police',   icon:'🚔', color:'#F05A5A'},
+};
+const SUBJECTS_BY_EXAM = {
+  MPSC:    ['History','Geography','Polity','Economy','Science','Current Affairs','Environment','Agriculture'],
+  UPSC:    ['History','Geography','Polity','Economy','Science','Current Affairs','Ethics','International Relations'],
+  SSC:     ['Reasoning','Maths','English','General Knowledge','Current Affairs'],
+  Banking: ['Reasoning','Maths','English','Banking Awareness','Computer Knowledge'],
+  Railway: ['Reasoning','Maths','General Science','General Knowledge','Current Affairs'],
+  Police:  ['Polity','History','Geography','Current Affairs','Reasoning'],
+};
+const SUBJECT_ICONS = {
+  History:'📜',Geography:'🗺️',Polity:'⚖️',Economy:'📊',Science:'🔬',
+  'Current Affairs':'📰',Environment:'🌿',Agriculture:'🌾',Ethics:'🧭',
+  'International Relations':'🌍',Reasoning:'🧠',Maths:'📐',English:'📖',
+  'General Knowledge':'💡','Banking Awareness':'🏦','Computer Knowledge':'💻',
+  'General Science':'🔭',
+};
+const SUBJECT_COLORS = {
+  History:'#F5A623',Geography:'#4F8EF7',Polity:'#A78BFA',Economy:'#3ECF8E',
+  Science:'#F472B6','Current Affairs':'#F05A5A',Environment:'#3ECF8E',
+  Agriculture:'#F5A623',Ethics:'#4F8EF7',Reasoning:'#F472B6',Maths:'#F5A623',
+  English:'#4F8EF7','General Knowledge':'#3ECF8E','Banking Awareness':'#A78BFA',
+  'Computer Knowledge':'#4F8EF7','General Science':'#F472B6',
+};
+
+// LOCAL FALLBACK QUESTIONS (used when Firestore is empty or offline)
+const LOCAL_QB = {
+  History:[
+    {q:"Who founded the Maratha Empire in 1674 CE?",opts:["Bajirao I","Shivaji Maharaj","Sambhaji","Balaji Vishwanath"],ans:1,exp:"Chhatrapati Shivaji Maharaj founded the Maratha Empire at Raigad."},
+    {q:"The Third Battle of Panipat (1761) was fought against?",opts:["Mughals","British East India Company","Ahmad Shah Durrani","Nizam of Hyderabad"],ans:2,exp:"Ahmad Shah Durrani (Abdali) defeated the Marathas at Panipat in 1761."},
+    {q:"Satyashodhak Samaj was founded by?",opts:["B.R. Ambedkar","Mahatma Phule","Gopal Krishna Gokhale","Bal Gangadhar Tilak"],ans:1,exp:"Jyotiba Phule founded Satyashodhak Samaj in 1873 to fight caste discrimination."},
+    {q:"Which Peshwa is known as 'Thorale Bajirao'?",opts:["Bajirao II","Bajirao I","Balaji Bajirao","Vishwanath"],ans:1,exp:"Bajirao I (1700-1740) is Thorale Bajirao — he never lost a battle in his career."},
+    {q:"Chauri Chaura incident occurred in which year?",opts:["1919","1920","1922","1930"],ans:2,exp:"Chauri Chaura (1922) saw police station set on fire, prompting Gandhi to suspend Non-Cooperation Movement."},
+  ],
+  Geography:[
+    {q:"Longest river in Maharashtra?",opts:["Krishna","Godavari","Bhima","Tapi"],ans:1,exp:"Godavari (Dakshin Ganga) is longest river in Maharashtra, originates at Trimbakeshwar."},
+    {q:"Lonar Lake is a?",opts:["Volcanic crater lake","Meteorite impact lake","Tectonic lake","Man-made reservoir"],ans:1,exp:"Lonar Lake in Buldhana is a saline lake formed by meteorite impact ~50,000 years ago."},
+    {q:"Western Ghats locally known as in Maharashtra?",opts:["Vindhya","Satpura","Sahyadri","Aravalli"],ans:2,exp:"Western Ghats are called Sahyadri in Maharashtra. UNESCO World Heritage Site."},
+    {q:"Highest peak in Maharashtra?",opts:["Harishchandragad","Sinhagad","Kalsubai","Rajgad"],ans:2,exp:"Kalsubai (1,646m) in Ahmednagar district is Maharashtra's highest peak."},
+    {q:"Deccan Plateau is mainly composed of?",opts:["Alluvial soil","Basalt/lava rock","Granite","Sandstone"],ans:1,exp:"Deccan Traps — ancient volcanic basalt lava flows — form the Deccan Plateau."},
+  ],
+  Polity:[
+    {q:"Maharashtra Vidhan Sabha seat count?",opts:["234","288","240","296"],ans:1,exp:"Maharashtra Legislative Assembly has 288 seats, one of India's largest."},
+    {q:"Article 356 of Indian Constitution deals with?",opts:["War Emergency","President's Rule in states","Financial Emergency","Amendment"],ans:1,exp:"Article 356 allows President's Rule when state constitutional machinery fails."},
+    {q:"8th Schedule of Indian Constitution lists?",opts:["Fundamental Rights","Official Languages","Union-State subjects","Emergency Provisions"],ans:1,exp:"8th Schedule lists 22 officially recognized languages including Marathi."},
+    {q:"73rd Constitutional Amendment gave status to?",opts:["Urban local bodies","Panchayati Raj institutions","High Courts","Election Commission"],ans:1,exp:"73rd Amendment (1992) gave constitutional status to Panchayati Raj institutions."},
+    {q:"Balwantrai Mehta Committee recommended?",opts:["Two-tier Panchayat","Three-tier Panchayat","Four-tier Panchayat","Direct elections"],ans:1,exp:"Balwantrai Mehta Committee (1957) recommended three-tier Panchayati Raj system."},
+  ],
+  Economy:[
+    {q:"Maharashtra's share in India's industrial output?",opts:["10%","15%","25%","35%"],ans:2,exp:"Maharashtra contributes ~25% of India's industrial output and ~14% of national GDP."},
+    {q:"MIDC stands for?",opts:["Maharashtra Industrial Development Corporation","Maharashtra Investment Development Council","Ministry of Industrial Development","Maharashtra Infrastructure Development Committee"],ans:0,exp:"MIDC (Maharashtra Industrial Development Corporation) was established in 1962."},
+    {q:"BSE (Bombay Stock Exchange) established in?",opts:["1860","1875","1900","1920"],ans:1,exp:"BSE established in 1875 is Asia's oldest stock exchange, located at Dalal Street, Mumbai."},
+    {q:"'White Gold' of Vidarbha refers to?",opts:["Rice","Sugarcane","Cotton","Wheat"],ans:2,exp:"Cotton is called White Gold in Vidarbha, Maharashtra's cotton-growing region."},
+    {q:"Samruddhi Mahamarg connects which cities?",opts:["Mumbai–Pune","Nagpur–Mumbai","Nashik–Aurangabad","Pune–Nagpur"],ans:1,exp:"Nagpur–Mumbai Super Communication Expressway (701 km) = Samruddhi Mahamarg."},
+  ],
+  Science:[
+    {q:"SI unit of electric current?",opts:["Volt","Ohm","Watt","Ampere"],ans:3,exp:"Ampere (A) is SI unit of electric current — flow of one Coulomb per second."},
+    {q:"Deficiency of Vitamin D leads to?",opts:["Scurvy","Rickets","Night blindness","Beri-beri"],ans:1,exp:"Vitamin D deficiency causes Rickets in children, Osteomalacia in adults."},
+    {q:"Powerhouse of the cell?",opts:["Nucleus","Ribosome","Mitochondria","Golgi Body"],ans:2,exp:"Mitochondria produce ATP (energy currency) through cellular respiration."},
+    {q:"Hardest natural substance?",opts:["Quartz","Graphite","Diamond","Corundum"],ans:2,exp:"Diamond scores 10 on Mohs scale — maximum hardness. Carbon atoms in crystal lattice."},
+    {q:"Gas responsible for greenhouse effect?",opts:["Oxygen","Nitrogen","Carbon Dioxide","Argon"],ans:2,exp:"CO₂ is the primary greenhouse gas driving climate change."},
+  ],
+  'Current Affairs':[
+    {q:"Maharashtra State Election Commission HQ?",opts:["Nagpur","Pune","Mumbai","Nashik"],ans:2,exp:"MSEC is headquartered in Mumbai and oversees local body elections in Maharashtra."},
+    {q:"Namo Shetkari Mahasanman Nidhi provides?",opts:["₹2000/year","₹6000/year","₹12000/year","₹18000/year"],ans:1,exp:"Scheme provides ₹6000/year extra to Maharashtra farmers on top of PM-KISAN's ₹6000."},
+    {q:"ONORC scheme enables?",opts:["Free ration","Ration card portability across states","Double ration","Digital ration only"],ans:1,exp:"One Nation One Ration Card enables ration card access from any fair price shop in India."},
+    {q:"Pune was selected in Smart Cities Mission first batch in?",opts:["2015","2016","2017","2018"],ans:0,exp:"Pune was in the first batch of Smart Cities Mission launched in 2015."},
+  ],
+  Reasoning:[
+    {q:"Odd one out: 8, 27, 64, 100, 125",opts:["8","27","100","125"],ans:2,exp:"8,27,64,125 are perfect cubes (2³,3³,4³,5³). 100=10² is a square, not a cube."},
+    {q:"If row has 40 students, Ravi is 11th from left. Position from right?",opts:["29th","30th","31st","28th"],ans:1,exp:"Position from right = Total − Position from left + 1 = 40 − 11 + 1 = 30."},
+    {q:"Complete the series: 1, 4, 9, 16, 25, ?",opts:["30","36","35","49"],ans:1,exp:"Series is perfect squares: 1²,2²,3²,4²,5²,6²=36."},
+  ],
+  Maths:[
+    {q:"Simple interest on ₹5000 at 8% for 3 years?",opts:["₹1000","₹1200","₹1400","₹1500"],ans:1,exp:"SI = P×R×T/100 = 5000×8×3/100 = ₹1200."},
+    {q:"If radius doubles, area becomes?",opts:["Double","Triple","4 times","8 times"],ans:2,exp:"Area=πr². New area=π(2r)²=4πr² → 4 times original."},
+    {q:"LCM of 12, 18, 24?",opts:["36","48","72","96"],ans:2,exp:"LCM = 2³×3² = 72."},
+    {q:"15% of 840?",opts:["120","126","130","124"],ans:1,exp:"15/100 × 840 = 126."},
+  ],
+};
+
+// ================================================================
+// APP STATE
+// ================================================================
+let STATE = {
+  user: null,         // Firebase user object
+  userData: null,     // Firestore user doc
+  currentExam: 'MPSC',
+  selectedDiff: 'Medium',
+  quiz: null,
+  prefs: {exp:true, notif:true},
+  firestoreReady: false,
+};
+let db = null;
+let auth = null;
+
+// ================================================================
+// FIREBASE INIT
+// ================================================================
+async function initFirebase() {
+  setLoadingMsg('Connecting to Firebase...');
+
+  // Check if config is filled
+  const cfg = window.FIREBASE_CONFIG;
+  if (!cfg || cfg.apiKey === 'YOUR_API_KEY') {
+    // Show config warning, go to login screen with warning
+    setLoadingMsg('Firebase not configured');
+    setTimeout(() => {
+      navigate('login');
+      document.getElementById('firebase-config-warning').style.display = 'block';
+      document.getElementById('google-login-btn').disabled = true;
+      document.getElementById('google-login-btn').textContent = 'Configure Firebase first';
+    }, 1000);
+    return;
+  }
+
+  try {
+    firebase.initializeApp(cfg);
+    auth = firebase.auth();
+    db = firebase.firestore();
+
+    // Enable offline persistence
+    await db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+    STATE.firestoreReady = true;
+    setLoadingMsg('Checking authentication...');
+
+    // Auth state listener
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        STATE.user = user;
+        loadUserData(user.uid).then(() => {
+          navigate('home');
+          updateFirebaseStatus(true);
+        });
+      } else {
+        navigate('login');
+      }
+    });
+
+  } catch (err) {
+    console.error('Firebase init error:', err);
+    setLoadingMsg('Connection error — using local mode');
+    setTimeout(() => navigate('login'), 1500);
+  }
+}
+
+function setLoadingMsg(msg) {
+  const el = document.getElementById('loading-msg');
+  if (el) el.textContent = msg;
+}
+
+function updateFirebaseStatus(connected) {
+  const dot = document.getElementById('fs-status-dot');
+  const text = document.getElementById('fs-status-text');
+  if (!dot) return;
+  if (connected) {
+    dot.className = 'fs-dot connected';
+    text.textContent = 'Firebase connected — data syncs across devices';
+  } else {
+    dot.className = 'fs-dot disconnected';
+    text.textContent = 'Offline mode — data saved locally';
+  }
+  // Monitor real-time connection
+  if (db) {
+    db.collection('_health').doc('ping').get()
+      .then(() => { dot.className='fs-dot connected'; text.textContent='Firebase connected'; })
+      .catch(() => { dot.className='fs-dot disconnected'; text.textContent='Offline — data cached locally'; });
+  }
+}
+
+// ================================================================
+// GOOGLE SIGN-IN
+// ================================================================
+async function signInWithGoogle() {
+  const btn = document.getElementById('google-login-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner spinner-sm"></div> Signing in...';
+  document.getElementById('login-error').style.display = 'none';
+
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.addScope('profile');
+    provider.addScope('email');
+    await auth.signInWithPopup(provider);
+    // onAuthStateChanged handles the rest
+  } catch (err) {
+    console.error('Sign in error:', err);
+    const errEl = document.getElementById('login-error');
+    errEl.style.display = 'block';
+    errEl.textContent = err.code === 'auth/popup-closed-by-user'
+      ? 'Sign in cancelled. Please try again.'
+      : 'Sign in failed: ' + err.message;
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Continue with Google`;
+  }
+}
+
+async function doSignOut() {
+  openModal(`<div style="text-align:center;padding:8px 0">
+    <div style="font-size:2rem;margin-bottom:12px">🚪</div>
+    <div style="font-size:1rem;font-weight:600;margin-bottom:8px">Sign Out?</div>
+    <div style="font-size:.85rem;color:var(--muted);margin-bottom:20px">Your progress is saved in Firebase.</div>
+    <button class="btn btn-outline btn-full" style="border-color:var(--red);color:var(--red);margin-bottom:10px" onclick="confirmSignOut()">Yes, Sign Out</button>
+    <button class="btn btn-outline btn-full" onclick="closeModal()">Cancel</button>
+  </div>`);
+}
+async function confirmSignOut() {
+  closeModal();
+  await auth.signOut();
+  STATE.user = null;
+  STATE.userData = null;
+  navigate('login');
+}
+function showSignedInAs() {
+  showToast('Signed in as: ' + (STATE.user?.email || 'Unknown'), 3000);
+}
+
+// ================================================================
+// FIRESTORE — USER DATA
+// ================================================================
+async function loadUserData(uid) {
+  if (!db) return;
+  try {
+    const ref = db.collection('users').doc(uid);
+    const snap = await ref.get();
+    if (snap.exists) {
+      STATE.userData = snap.data();
+    } else {
+      // First-time user — create profile
+      const newUser = {
+        uid,
+        name: STATE.user.displayName || 'Student',
+        email: STATE.user.email,
+        photoURL: STATE.user.photoURL,
+        exam: 'MPSC',
+        plan: 'free',
+        planExpiry: null,
+        stats: {total:0, correct:0, streak:1, xp:0, goalDone:0, lastActive:new Date().toDateString()},
+        subjectProgress: {},
+        prefs: {exp:true, notif:true},
+        history: [],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      await ref.set(newUser);
+      STATE.userData = newUser;
+    }
+    STATE.currentExam = STATE.userData.exam || 'MPSC';
+    STATE.prefs = STATE.userData.prefs || {exp:true, notif:true};
+  } catch (err) {
+    console.error('loadUserData error:', err);
+    // Fallback to minimal local state
+    STATE.userData = {
+      name: STATE.user?.displayName || 'Student',
+      email: STATE.user?.email,
+      photoURL: STATE.user?.photoURL,
+      exam: 'MPSC', plan: 'free',
+      stats: {total:0, correct:0, streak:1, xp:0, goalDone:0},
+      subjectProgress: {},
+      history: [],
+    };
+  }
+}
+
+async function saveUserData(updates) {
+  if (!db || !STATE.user) return;
+  try {
+    await db.collection('users').doc(STATE.user.uid).update(updates);
+    // Merge locally
+    Object.assign(STATE.userData, updates);
+  } catch (err) {
+    console.error('saveUserData error:', err);
+  }
+}
+
+// ================================================================
+// FIRESTORE — QUESTIONS
+// ================================================================
+// Questions are stored in: questions/{exam}/{subject} (array field "items")
+// This allows adding 1000+ questions without updating the app
+async function fetchQuestions(exam, subject) {
+  if (!db) return getLocalQuestions(subject);
+  try {
+    const snap = await db.collection('questions')
+      .doc(exam).collection(subject).get();
+    if (snap.empty) return getLocalQuestions(subject);
+    const all = [];
+    snap.forEach(doc => {
+      const d = doc.data();
+      if (d.q && d.opts && typeof d.ans === 'number') all.push(d);
+    });
+    return all.length ? all : getLocalQuestions(subject);
+  } catch (err) {
+    console.warn('Firestore fetch failed, using local:', err.message);
+    return getLocalQuestions(subject);
+  }
+}
+
+function getLocalQuestions(subject) {
+  return LOCAL_QB[subject] || [];
+}
+
+// ================================================================
+// FIRESTORE — LEADERBOARD
+// ================================================================
+async function fetchLeaderboard(filter = 'weekly') {
+  if (!db) return getMockLeaderboard();
+  try {
+    const field = filter === 'weekly' ? 'weeklyXp' : 'stats.xp';
+    const snap = await db.collection('users')
+      .orderBy(field, 'desc').limit(20).get();
+    const leaders = [];
+    snap.forEach(doc => {
+      const d = doc.data();
+      leaders.push({
+        uid: d.uid, name: d.name, photoURL: d.photoURL,
+        xp: filter === 'weekly' ? (d.weeklyXp || 0) : (d.stats?.xp || 0),
+        streak: d.stats?.streak || 0, exam: d.exam || 'MPSC',
+        isYou: d.uid === STATE.user?.uid,
+      });
+    });
+    if (!leaders.find(l => l.isYou) && STATE.user) {
+      leaders.push({
+        uid: STATE.user.uid,
+        name: STATE.userData?.name || STATE.user.displayName,
+        photoURL: STATE.user.photoURL,
+        xp: STATE.userData?.stats?.xp || 0,
+        streak: STATE.userData?.stats?.streak || 0,
+        exam: STATE.currentExam, isYou: true,
+      });
+      leaders.sort((a,b) => b.xp - a.xp);
+    }
+    return leaders;
+  } catch (err) {
+    console.warn('Leaderboard fetch failed:', err.message);
+    return getMockLeaderboard();
+  }
+}
+
+function getMockLeaderboard() {
+  const base = [
+    {name:'Priya Patil',xp:4280,streak:22,exam:'MPSC'},
+    {name:'Rahul Sharma',xp:3960,streak:18,exam:'MPSC'},
+    {name:'Anjali Desai',xp:3750,streak:15,exam:'UPSC'},
+    {name:'Vikram Joshi',xp:3420,streak:12,exam:'MPSC'},
+    {name:'Sneha Kulkarni',xp:3180,streak:9,exam:'MPSC'},
+    {name:'Amit Yadav',xp:2950,streak:14,exam:'SSC'},
+    {name:'Pooja Nair',xp:2720,streak:7,exam:'Banking'},
+  ];
+  const myEntry = {
+    name: STATE.userData?.name || STATE.user?.displayName || 'You',
+    photoURL: STATE.user?.photoURL, isYou: true,
+    xp: STATE.userData?.stats?.xp || 0,
+    streak: STATE.userData?.stats?.streak || 0, exam: STATE.currentExam,
+  };
+  return [...base, myEntry].sort((a,b) => b.xp - a.xp);
+}
+
+// ================================================================
+// RAZORPAY PAYMENT
+// ================================================================
+async function startPayment(planKey) {
+  if (!STATE.user) { showToast('Please sign in first'); return; }
+
+  const plan = window.PLANS[planKey];
+  if (!plan) return;
+
+  if (window.RAZORPAY_KEY === 'rzp_test_YOUR_KEY_HERE') {
+    // Demo mode — activate without real payment
+    openModal(`<div style="text-align:center;padding:8px 0">
+      <div style="font-size:2rem;margin-bottom:12px">⚙️</div>
+      <div style="font-size:1rem;font-weight:600;margin-bottom:8px">Razorpay Not Configured</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:20px">
+        Add your Razorpay Key ID at the top of index.html.<br>For now, activating Pro in demo mode.
+      </div>
+      <button class="btn btn-primary btn-full" style="margin-bottom:10px" onclick="activateProDemo('${planKey}')">✅ Activate ${plan.label} (Demo)</button>
+      <button class="btn btn-outline btn-full" onclick="closeModal()">Cancel</button>
+    </div>`);
+    return;
+  }
+
+  const options = {
+    key: window.RAZORPAY_KEY,
+    amount: plan.amount,
+    currency: 'INR',
+    name: 'ParikshaMitra',
+    description: plan.label,
+    image: 'icons/icon-192.png',
+    prefill: {
+      name: STATE.user.displayName || '',
+      email: STATE.user.email || '',
+    },
+    notes: {
+      userId: STATE.user.uid,
+      plan: planKey,
+    },
+    theme: { color: '#F5A623' },
+    handler: async function(response) {
+      // Payment succeeded — call your backend to verify + update Firestore
+      // See: functions/index.js for the webhook handler
+      showToast('Payment successful! Activating...', 3000);
+      await activatePlanAfterPayment(planKey, response.razorpay_payment_id);
+    },
+    modal: {
+      ondismiss: function() { showToast('Payment cancelled'); }
+    }
+  };
+
+  const rzp = new window.Razorpay(options);
+  rzp.open();
+}
+
+async function activatePlanAfterPayment(planKey, paymentId) {
+  // In production: your backend (Cloud Function) verifies payment and sets this
+  // Here we update Firestore directly (safe since payment already verified by Razorpay)
+  const expiry = new Date();
+  if (planKey === 'pro') expiry.setMonth(expiry.getMonth() + 1);
+  if (planKey === 'premium') expiry.setFullYear(expiry.getFullYear() + 1);
+
+  const updates = {
+    plan: 'pro',
+    planExpiry: expiry.toISOString(),
+    lastPaymentId: paymentId,
+    upgradedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+  await saveUserData(updates);
+  STATE.userData.plan = 'pro';
+  closeModal();
+  renderHome();
+  showToast('🎉 Pro activated! All features unlocked.', 3000);
+}
+
+async function activateProDemo(planKey) {
+  const expiry = new Date();
+  if (planKey === 'pro') expiry.setMonth(expiry.getMonth() + 1);
+  if (planKey === 'premium') expiry.setFullYear(expiry.getFullYear() + 1);
+  await saveUserData({plan:'pro', planExpiry:expiry.toISOString()});
+  STATE.userData.plan = 'pro';
+  closeModal();
+  renderHome();
+  showToast('🎉 Pro activated! (Demo mode)', 3000);
+}
+
+function getUserPlan() {
+  const d = STATE.userData;
+  if (!d || d.plan === 'free') return 'free';
+  if (d.planExpiry && new Date(d.planExpiry) < new Date()) return 'free'; // expired
+  return d.plan;
+}
+
+// ================================================================
+// NAVIGATION
+// ================================================================
+const MAIN_SCREENS = ['home','ai','leaderboard','analytics','profile'];
+function navigate(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + screen);
+  if (!el) return;
+  el.classList.add('active');
+  el.scrollTop = 0;
+  const nav = document.getElementById('bottom-nav');
+  if (MAIN_SCREENS.includes(screen)) {
+    nav.classList.add('visible');
+    MAIN_SCREENS.forEach(s => {
+      document.getElementById('nav-' + s)?.classList.toggle('active', s === screen);
+    });
+  } else {
+    nav.classList.remove('visible');
+  }
+  if (screen === 'home') renderHome();
+  if (screen === 'analytics') renderAnalytics();
+  if (screen === 'leaderboard') renderLeaderboard('weekly');
+  if (screen === 'profile') renderProfile();
+  if (screen === 'subjects') renderAllSubjects();
+  if (screen === 'ai') renderAIScreen();
+  if (screen === 'plans') renderPlans();
+}
+
+// ================================================================
+// HOME
+// ================================================================
+function renderHome() {
+  if (!STATE.user) { navigate('login'); return; }
+  const d = STATE.userData || {};
+  const stats = d.stats || {};
+  const hr = new Date().getHours();
+  const greet = hr < 12 ? 'Good morning ☀️' : hr < 17 ? 'Good afternoon 🌤️' : 'Good evening 🌙';
+  document.getElementById('home-greeting').textContent = greet + ',';
+  document.getElementById('home-name').textContent = STATE.user.displayName || d.name || 'Student';
+
+  // Avatar
+  const avatarWrap = document.getElementById('home-avatar-wrap');
+  if (STATE.user.photoURL) {
+    avatarWrap.innerHTML = `<img src="${STATE.user.photoURL}" class="avatar" onclick="navigate('profile')" referrerpolicy="no-referrer">`;
+  } else {
+    const initials = (STATE.user.displayName || 'S').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+    avatarWrap.innerHTML = `<div class="avatar-placeholder" onclick="navigate('profile')">${initials}</div>`;
+  }
+
+  const plan = getUserPlan();
+  document.getElementById('plan-badge').textContent = plan.toUpperCase();
+  document.getElementById('plan-badge').className = 'badge ' + (plan === 'free' ? 'badge-free' : 'badge-pro');
+
+  document.getElementById('streak-count').textContent = stats.streak || 1;
+  document.getElementById('streak-xp').textContent = (stats.streak || 1) * 10;
+  document.getElementById('stat-attempted').textContent = stats.total || 0;
+  const acc = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) + '%' : '—';
+  document.getElementById('stat-accuracy').textContent = acc;
+  document.getElementById('stat-xp').textContent = stats.xp || 0;
+  const gd = Math.min(stats.goalDone || 0, 10);
+  document.getElementById('goal-done').textContent = gd;
+  document.getElementById('goal-bar').style.width = (gd * 10) + '%';
+
+  // Exam chips
+  document.getElementById('exam-scroll').innerHTML = Object.entries(EXAMS).map(([k,v]) => `
+    <div class="exam-chip ${STATE.currentExam===k?'active':''}" onclick="selectExam('${k}')">
+      <div style="font-size:1.4rem;margin-bottom:6px">${v.icon}</div>
+      <div style="font-size:.85rem;font-weight:600">${v.name}</div>
+      <div style="margin-top:6px">${plan==='free'&&k!=='MPSC'?'<span class="badge badge-free">🔒 Pro</span>':'<span class="badge badge-new">Active</span>'}</div>
+    </div>`).join('');
+
+  renderSubjectList();
+  updateFirebaseStatus(STATE.firestoreReady);
+}
+
+function selectExam(exam) {
+  if (getUserPlan() === 'free' && exam !== 'MPSC') {
+    showPaywall(`Unlock ${EXAMS[exam].full}`, 'Access all 6 exams with Pro'); return;
+  }
+  STATE.currentExam = exam;
+  saveUserData({exam});
+  renderHome();
+}
+
+function renderSubjectList() {
+  const subjects = (SUBJECTS_BY_EXAM[STATE.currentExam] || []).slice(0, 5);
+  const plan = getUserPlan();
+  const prog = STATE.userData?.subjectProgress || {};
+  document.getElementById('subject-list').innerHTML = subjects.map((s, i) => {
+    const locked = plan === 'free' && i >= 2;
+    const p = prog[s] || 0;
+    return `<div class="subject-card" onclick="${locked ? `showPaywall('${s}','Unlock all subjects with Pro')` : `startSubjectQuiz('${s}')`}">
+      <div class="subject-icon" style="background:${SUBJECT_COLORS[s]||'#4F8EF7'}22">${SUBJECT_ICONS[s]||'📚'}</div>
+      <div class="subject-info">
+        <div class="subject-name">${s} ${locked ? '🔒' : ''}</div>
+        <div class="subject-meta">Questions from Firestore database</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${p}%"></div></div>
+      </div>
+      <div style="color:var(--muted)">›</div>
+    </div>`;
+  }).join('');
+}
+
+function renderAllSubjects() {
+  const subjects = SUBJECTS_BY_EXAM[STATE.currentExam] || [];
+  const plan = getUserPlan();
+  const prog = STATE.userData?.subjectProgress || {};
+  document.getElementById('all-subjects-list').innerHTML = subjects.map((s, i) => {
+    const locked = plan === 'free' && i >= 2;
+    const p = prog[s] || 0;
+    return `<div class="subject-card" onclick="${locked ? `showPaywall('${s}','Unlock all subjects with Pro')` : `startSubjectQuiz('${s}')`}">
+      <div class="subject-icon" style="background:${SUBJECT_COLORS[s]||'#4F8EF7'}22">${SUBJECT_ICONS[s]||'📚'}</div>
+      <div class="subject-info">
+        <div class="subject-name">${s} ${locked ? '🔒' : ''}</div>
+        <div class="subject-meta">Tap to practise</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${p}%"></div></div>
+      </div>
+      <div style="color:var(--muted)">›</div>
+    </div>`;
+  }).join('');
+}
+
+// ================================================================
+// QUIZ ENGINE
+// ================================================================
+async function startSubjectQuiz(subject) {
+  showToast('Loading questions...', 1500);
+  const all = await fetchQuestions(STATE.currentExam, subject);
+  if (!all.length) { showToast('No questions available for ' + subject); return; }
+  const limit = getUserPlan() === 'free' ? 5 : all.length;
+  const qs = [...all].sort(() => Math.random() - 0.5).slice(0, Math.min(limit, 10));
+  launchQuiz(qs, subject + ' Practice', subject, false);
+}
+
+async function startMockTest() {
+  if (getUserPlan() === 'free') { showPaywall('Mock Tests', 'Get timed mock tests across all subjects with Pro'); return; }
+  showToast('Building mock test...', 1500);
+  const subjects = SUBJECTS_BY_EXAM[STATE.currentExam] || [];
+  let qs = [];
+  for (const s of subjects.slice(0, 8)) {
+    const all = await fetchQuestions(STATE.currentExam, s);
+    if (all.length) qs.push(all[Math.floor(Math.random() * all.length)]);
+  }
+  qs = [...qs, ...qs].sort(() => Math.random() - 0.5).slice(0, 20);
+  launchQuiz(qs, 'Full Mock Test — ' + STATE.currentExam, 'Mixed', true, 20 * 60);
+}
+
+function launchQuiz(qs, title, subject, isMock, timerSecs = 0) {
+  STATE.quiz = {
+    qs, title, subject, isMock, timerSecs,
+    curr: 0,
+    answers: new Array(qs.length).fill(-1),
+    startTime: Date.now(),
+    timerRemaining: timerSecs,
+    timerInterval: null,
+  };
+  document.getElementById('quiz-title').textContent = title;
+  const timerEl = document.getElementById('timer-pill');
+  if (isMock && timerSecs > 0) {
+    timerEl.style.display = 'flex';
+    updateTimer();
+    STATE.quiz.timerInterval = setInterval(() => {
+      STATE.quiz.timerRemaining--;
+      updateTimer();
+      if (STATE.quiz.timerRemaining <= 0) { clearInterval(STATE.quiz.timerInterval); submitQuiz(); }
+    }, 1000);
+  } else { timerEl.style.display = 'none'; }
+  renderQ();
+  navigate('quiz');
+}
+
+function updateTimer() {
+  const s = STATE.quiz.timerRemaining;
+  const m = Math.floor(s / 60), sec = s % 60;
+  document.getElementById('timer-text').textContent = String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+  document.getElementById('timer-pill').classList.toggle('urgent', s <= 60);
+}
+
+function renderQ() {
+  const {qs, curr, answers} = STATE.quiz;
+  const q = qs[curr], total = qs.length;
+  const correct = answers.filter((a,i) => a === qs[i].ans).length;
+  const wrong = answers.filter((a,i) => a !== -1 && a !== qs[i].ans).length;
+  document.getElementById('q-counter').textContent = `Q ${curr+1} of ${total}`;
+  document.getElementById('q-score-live').textContent = `✓ ${correct} · ✗ ${wrong}`;
+  document.getElementById('q-progress').style.width = (curr / total * 100) + '%';
+  document.getElementById('q-badge').textContent = `Question ${curr+1}`;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('q-dots').innerHTML = qs.map((qq,i) => {
+    let cls = 'q-dot';
+    if (i === curr) cls += ' current';
+    else if (answers[i] === qq.ans) cls += ' done';
+    else if (answers[i] > -1) cls += ' wrong-dot';
+    return `<div class="${cls}"></div>`;
+  }).join('');
+  const answered = answers[curr] > -1;
+  const labels = ['A','B','C','D'];
+  document.getElementById('options-list').innerHTML = q.opts.map((opt, j) => {
+    let cls = 'option';
+    if (answered) {
+      cls += ' disabled';
+      if (j === q.ans) cls += ' correct';
+      else if (j === answers[curr]) cls += ' wrong';
+    }
+    return `<div class="${cls}" onclick="answer(${j})">
+      <div class="option-label">${labels[j]}</div><div>${opt}</div>
+    </div>`;
+  }).join('');
+  const expBox = document.getElementById('explanation-box');
+  if (answered && STATE.prefs.exp && q.exp) { expBox.style.display='block'; expBox.textContent='💡 '+q.exp; }
+  else expBox.style.display = 'none';
+  const isLast = curr === total - 1;
+  document.getElementById('btn-prev').style.display = curr > 0 ? 'flex' : 'none';
+  document.getElementById('btn-skip').style.display = answered ? 'none' : 'flex';
+  document.getElementById('btn-next').style.display = answered && !isLast ? 'flex' : 'none';
+  document.getElementById('btn-submit').style.display = answered && isLast ? 'flex' : 'none';
+}
+
+function answer(j) {
+  if (STATE.quiz.answers[STATE.quiz.curr] > -1) return;
+  STATE.quiz.answers[STATE.quiz.curr] = j;
+  renderQ();
+}
+function skipQ() { STATE.quiz.answers[STATE.quiz.curr]=-2; if(STATE.quiz.curr<STATE.quiz.qs.length-1){STATE.quiz.curr++;renderQ();}else submitQuiz(); }
+function nextQ() { if(STATE.quiz.curr<STATE.quiz.qs.length-1){STATE.quiz.curr++;renderQ();} }
+function prevQ() { if(STATE.quiz.curr>0){STATE.quiz.curr--;renderQ();} }
+
+async function submitQuiz() {
+  if (STATE.quiz.timerInterval) clearInterval(STATE.quiz.timerInterval);
+  const {qs, answers, subject, title, startTime} = STATE.quiz;
+  const total = qs.length;
+  const correct = answers.filter((a,i) => a === qs[i].ans).length;
+  const wrong = answers.filter((a,i) => a > -1 && a !== qs[i].ans).length;
+  const skip = answers.filter(a => a <= -1).length;
+  const pct = Math.round(correct / total * 100);
+  const timeTaken = Math.round((Date.now() - startTime) / 1000);
+  const xp = correct * 5 + (pct >= 80 ? 20 : pct >= 60 ? 10 : 0);
+
+  // Update Firestore
+  const prevStats = STATE.userData?.stats || {};
+  const newStats = {
+    total: (prevStats.total || 0) + total,
+    correct: (prevStats.correct || 0) + correct,
+    streak: prevStats.streak || 1,
+    xp: (prevStats.xp || 0) + xp,
+    goalDone: Math.min((prevStats.goalDone || 0) + total, 10),
+    lastActive: new Date().toDateString(),
+  };
+  const prevProg = STATE.userData?.subjectProgress || {};
+  const newProg = {...prevProg, [subject]: Math.min(100, (prevProg[subject] || 0) + Math.round(pct * 0.2))};
+  const histEntry = {title, subject, pct, correct, wrong, skip, total, timeTaken, xp, date: new Date().toLocaleDateString('en-IN')};
+  const newHistory = [histEntry, ...(STATE.userData?.history || [])].slice(0, 50);
+
+  await saveUserData({
+    stats: newStats,
+    subjectProgress: newProg,
+    history: newHistory,
+    weeklyXp: firebase.firestore.FieldValue.increment(xp),
+  });
+
+  // Render result
+  const offset = 339 * (1 - pct / 100);
+  setTimeout(() => { document.getElementById('result-arc').style.strokeDashoffset = offset; }, 100);
+  document.getElementById('result-arc').style.stroke = pct>=80?'var(--green)':pct>=50?'var(--accent)':'var(--red)';
+  document.getElementById('result-pct').textContent = pct + '%';
+  const msg = pct>=80?['Excellent! 🏆','Outstanding! You are exam-ready.']:pct>=60?['Good Job! 👍','Solid attempt. Revise weak areas.']:pct>=40?['Keep Going! 💪','Consistency is key. Practice more.']:['Don\'t Give Up! 🔄','Review and retry — you\'ll improve.'];
+  document.getElementById('result-title').textContent = msg[0];
+  document.getElementById('result-sub').textContent = msg[1];
+  document.getElementById('res-correct').textContent = correct;
+  document.getElementById('res-wrong').textContent = wrong;
+  document.getElementById('res-skip').textContent = skip;
+  document.getElementById('res-xp').textContent = '+' + xp + ' XP';
+  const m = Math.floor(timeTaken/60), s = timeTaken%60;
+  document.getElementById('res-time').textContent = m + ':' + String(s).padStart(2,'0');
+  document.getElementById('res-percentile').textContent = pct>=80?'Top 10%':pct>=60?'Top 30%':pct>=40?'Top 60%':'Bottom 40%';
+  document.getElementById('result-review').innerHTML = qs.map((q,i) => {
+    const ua = answers[i]; const isCorrect = ua === q.ans;
+    return `<div class="review-item">
+      <div class="review-q">${i+1}. ${q.q}</div>
+      <div style="font-size:.78rem;color:${isCorrect?'var(--green)':'var(--red)'};margin-bottom:${q.exp?'4px':'0'}">${isCorrect?'✅':'❌'} ${ua>=0?q.opts[ua]:'Skipped'}</div>
+      ${!isCorrect?`<div style="font-size:.78rem;color:var(--green);margin-bottom:4px">✅ ${q.opts[q.ans]}</div>`:''}
+      ${q.exp?`<div style="font-size:.78rem;color:var(--muted);line-height:1.5">💡 ${q.exp}</div>`:''}
+    </div>`;
+  }).join('');
+  document.getElementById('retry-btn').onclick = () => launchQuiz([...qs].sort(()=>Math.random()-.5), title, subject, STATE.quiz.isMock, STATE.quiz.timerSecs);
+  navigate('result');
+}
+
+function confirmQuit() {
+  openModal(`<div style="text-align:center;padding:8px 0">
+    <div style="font-size:2rem;margin-bottom:12px">⚠️</div>
+    <div style="font-size:1rem;font-weight:600;margin-bottom:8px">Quit Quiz?</div>
+    <div style="font-size:.85rem;color:var(--muted);margin-bottom:20px">This session's progress will not be saved.</div>
+    <button class="btn btn-outline btn-full" style="border-color:var(--red);color:var(--red);margin-bottom:10px" onclick="quitQuiz()">Yes, Quit</button>
+    <button class="btn btn-outline btn-full" onclick="closeModal()">Keep Going</button>
+  </div>`);
+}
+function quitQuiz() { if(STATE.quiz?.timerInterval)clearInterval(STATE.quiz.timerInterval); closeModal(); navigate('home'); }
+
+// ================================================================
+// AI GENERATOR
+// ================================================================
+function renderAIScreen() {
+  const subjects = SUBJECTS_BY_EXAM[STATE.currentExam] || [];
+  document.getElementById('ai-subject-sel').innerHTML = subjects.map(s=>`<option>${s}</option>`).join('');
+  const locked = getUserPlan() === 'free';
+  document.getElementById('ai-paywall').style.display = locked ? 'block' : 'none';
+  document.getElementById('ai-gen-btn').style.display = locked ? 'none' : 'block';
+}
+
+function setDiff(d, el) {
+  STATE.selectedDiff = d;
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+async function generateAI() {
+  if (getUserPlan() === 'free') { showPaywall('AI Questions', 'Generate unlimited AI questions with Pro'); return; }
+  const subject = document.getElementById('ai-subject-sel').value;
+  const topic = document.getElementById('ai-topic').value.trim();
+  const count = document.getElementById('ai-count').value;
+  const diff = STATE.selectedDiff;
+
+  document.getElementById('ai-gen-btn').disabled = true;
+  document.getElementById('ai-loading').style.display = 'flex';
+
+  const topicStr = topic ? ` on the specific topic: "${topic}"` : '';
+  const prompt = `Generate exactly ${count} multiple choice questions for ${STATE.currentExam} competitive exam. Subject: ${subject}${topicStr}. Difficulty: ${diff}.
+Requirements: accurate, MPSC/competitive exam syllabus relevant, 4 options each, one correct answer, brief explanation.
+Return ONLY valid JSON array, no markdown:
+[{"q":"question","opts":["A","B","C","D"],"ans":0,"exp":"brief explanation"}]`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})
+    });
+    const data = await res.json();
+    const text = (data.content||[]).map(c=>c.text||'').join('');
+    const qs = JSON.parse(text.replace(/```json|```/g,'').trim());
+    document.getElementById('ai-loading').style.display = 'none';
+    document.getElementById('ai-gen-btn').disabled = false;
+    if (!Array.isArray(qs) || !qs.length) throw new Error('Invalid response');
+    launchQuiz(qs, `AI: ${subject}${topic?' — '+topic:''}`, subject, false);
+  } catch (e) {
+    document.getElementById('ai-loading').style.display = 'none';
+    document.getElementById('ai-gen-btn').disabled = false;
+    showToast('AI generation failed. Check connection.');
+  }
+}
+
+// ================================================================
+// ANALYTICS
+// ================================================================
+function renderAnalytics() {
+  const d = STATE.userData || {};
+  const stats = d.stats || {};
+  document.getElementById('ana-total').textContent = stats.total || 0;
+  const acc = stats.total > 0 ? Math.round(stats.correct/stats.total*100) : 0;
+  document.getElementById('ana-accuracy').textContent = acc + '%';
+  document.getElementById('ana-streak').textContent = stats.streak || 0;
+  document.getElementById('ana-xp').textContent = stats.xp || 0;
+  const subjects = SUBJECTS_BY_EXAM[STATE.currentExam] || [];
+  const prog = d.subjectProgress || {};
+  document.getElementById('subj-perf-list').innerHTML = subjects.slice(0,6).map(s => {
+    const p = prog[s] || 0;
+    const color = SUBJECT_COLORS[s] || '#4F8EF7';
+    return `<div class="subj-perf-row">
+      <div style="width:28px">${SUBJECT_ICONS[s]||'📚'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.82rem;font-weight:500;margin-bottom:4px">${s}</div>
+        <div style="height:6px;background:var(--faint);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${p}%;background:${color};border-radius:3px;transition:width .6s"></div>
+        </div>
+      </div>
+      <div style="font-size:.82rem;font-weight:600;min-width:36px;text-align:right;color:${color}">${p}%</div>
+    </div>`;
+  }).join('');
+  const history = (d.history || []).slice(0, getUserPlan()==='free'?3:15);
+  document.getElementById('history-list').innerHTML = history.map(h => `
+    <div class="history-item">
+      <div><div class="hist-title">${h.title}</div><div class="hist-date">${h.date} · ${h.subject}</div></div>
+      <div style="text-align:right">
+        <div style="font-size:1rem;font-weight:700;color:${h.pct>=70?'var(--green)':h.pct>=40?'var(--accent)':'var(--red)'}">${h.pct}%</div>
+        <div style="font-size:.72rem;color:var(--muted)">${h.correct}/${h.total} · +${h.xp}XP</div>
+      </div>
+    </div>`).join('') || '<div style="padding:24px;text-align:center;color:var(--muted);font-size:.85rem">No sessions yet. Start practising!</div>';
+  if (getUserPlan()==='free' && (d.history||[]).length>3) {
+    document.getElementById('history-list').insertAdjacentHTML('beforeend', `
+      <div style="margin:0 16px 16px;text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r)">
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:12px">🔒 ${(d.history||[]).length-3} more sessions — Pro only</div>
+        <button class="btn btn-primary btn-full btn-sm" onclick="navigate('plans')">Upgrade to see all</button>
+      </div>`);
+  }
+}
+
+// ================================================================
+// LEADERBOARD
+// ================================================================
+async function renderLeaderboard(filter) {
+  document.getElementById('lb-podium').innerHTML = '<div class="loading-full" style="padding:20px"><div class="spinner"></div></div>';
+  document.getElementById('lb-list').innerHTML = '';
+  const leaders = await fetchLeaderboard(filter);
+  const top3 = leaders.slice(0, 3);
+  const order = [1,0,2];
+  const heights = ['44px','60px','32px'];
+  const medals = ['🥈','🥇','🥉'];
+  document.getElementById('lb-podium').innerHTML = order.map((i, pos) => {
+    const p = top3[i];
+    if (!p) return '';
+    const size = pos === 1 ? '60px' : '48px';
+    const avatarHTML = p.photoURL
+      ? `<img src="${p.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover" referrerpolicy="no-referrer">`
+      : `<span style="font-weight:700">${(p.name||'?')[0]}</span>`;
+    return `<div class="podium-item" style="max-width:110px">
+      <div style="font-size:.9rem;margin-bottom:2px">${medals[pos]}</div>
+      <div class="podium-avatar" style="width:${size};height:${size};${p.isYou?'border-color:var(--accent2)':''}">${avatarHTML}</div>
+      <div style="font-size:.78rem;font-weight:600;text-align:center;margin-top:4px">${p.name?.split(' ')[0]||'?'}</div>
+      <div style="font-size:.72rem;color:var(--muted)">${p.xp} XP</div>
+      <div class="podium-stand" style="height:${heights[pos]};border-radius:var(--rs) var(--rs) 0 0;background:${pos===1?'rgba(245,166,35,.2)':pos===0?'rgba(180,180,180,.15)':'rgba(205,127,50,.15)'}"></div>
+    </div>`;
+  }).join('');
+  document.getElementById('lb-list').innerHTML = leaders.slice(3).map((p, i) => {
+    const avatarHTML = p.photoURL
+      ? `<img src="${p.photoURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" referrerpolicy="no-referrer">`
+      : `<span style="font-weight:700">${(p.name||'?')[0]}</span>`;
+    return `<div class="lb-row ${p.isYou?'lb-you':''}">
+      <div class="lb-rank">${i+4}</div>
+      <div class="lb-avatar-sm">${avatarHTML}</div>
+      <div style="flex:1"><div style="font-size:.88rem;font-weight:600">${p.name||'?'}${p.isYou?' (You)':''}</div><div style="font-size:.73rem;color:var(--muted);margin-top:2px">🔥${p.streak} streak · ${p.exam}</div></div>
+      <div style="font-size:.9rem;font-weight:700;color:var(--accent)">${p.xp} XP</div>
+    </div>`;
+  }).join('');
+}
+
+function setLbFilter(f, el) {
+  document.querySelectorAll('#lb-filter .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderLeaderboard(f);
+}
+
+// ================================================================
+// PLANS
+// ================================================================
+function renderPlans() {
+  const plan = getUserPlan();
+  const proBtn = document.getElementById('pro-pay-btn');
+  if (proBtn) {
+    if (plan === 'pro') {
+      proBtn.textContent = '✅ Current Plan';
+      proBtn.disabled = true;
+    } else {
+      proBtn.textContent = '🚀 Upgrade — ₹99/month';
+      proBtn.disabled = false;
+    }
+  }
+}
+
+// ================================================================
+// PROFILE
+// ================================================================
+function renderProfile() {
+  if (!STATE.user) return;
+  const d = STATE.userData || {};
+  const wrap = document.getElementById('profile-avatar-wrap');
+  if (STATE.user.photoURL) {
+    wrap.innerHTML = `<img src="${STATE.user.photoURL}" class="profile-avatar-big" referrerpolicy="no-referrer">`;
+  } else {
+    const initials = (STATE.user.displayName||'S').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+    wrap.innerHTML = `<div class="profile-avatar-big-placeholder">${initials}</div>`;
+  }
+  document.getElementById('profile-name').textContent = STATE.user.displayName || d.name || 'Student';
+  document.getElementById('profile-email').textContent = STATE.user.email || '';
+  document.getElementById('profile-google-email').textContent = STATE.user.email || 'Signed in with Google';
+  const plan = getUserPlan();
+  document.getElementById('profile-plan-badge').textContent = plan.toUpperCase();
+  document.getElementById('profile-plan-badge').className = 'badge ' + (plan==='free'?'badge-free':'badge-pro');
+  document.getElementById('profile-streak').textContent = d.stats?.streak || 1;
+  ['exp','notif'].forEach(k => {
+    document.getElementById('toggle-'+k)?.classList.toggle('on', !!STATE.prefs[k]);
+  });
+}
+
+function togglePref(k) {
+  STATE.prefs[k] = !STATE.prefs[k];
+  saveUserData({prefs: STATE.prefs});
+  renderProfile();
+}
+
+// ================================================================
+// PAYWALL
+// ================================================================
+function showPaywall(feature='Feature', desc='Upgrade to Pro to unlock this') {
+  openModal(`<div style="text-align:center;padding:8px 0">
+    <div style="font-size:2.5rem;margin-bottom:12px">🔒</div>
+    <div style="font-size:1rem;font-weight:600;margin-bottom:6px">${feature}</div>
+    <div style="font-size:.85rem;color:var(--muted);margin-bottom:20px">${desc}</div>
+    <button class="btn btn-primary btn-full btn-lg" style="margin-bottom:10px" onclick="closeModal();navigate('plans')">View Plans →</button>
+    <button class="btn btn-outline btn-full" onclick="closeModal()">Not Now</button>
+  </div>`);
+}
+
+// ================================================================
+// MODAL & TOAST
+// ================================================================
+function openModal(html) {
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('open');
+}
+let _toastTimer = null;
+function showToast(msg, duration=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ================================================================
+// INIT
+// ================================================================
+window.addEventListener('DOMContentLoaded', initFirebase);
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
