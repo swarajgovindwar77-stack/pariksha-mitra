@@ -21,7 +21,6 @@
     storageBucket: "pariksha-mitra-a17fb.firebasestorage.app",
     messagingSenderId: "571631829130",
     appId: "1:571631829130:web:cde3bf393dd617c935ed73",
-    measurementId: "G-Q0K697RMRT"
   };
 </script>
 
@@ -31,7 +30,7 @@
      Use TEST key during development, LIVE key when publishing
      ══════════════════════════════════════════════ -->
 <script>
-  window.RAZORPAY_KEY = "rzp_test_YOUR_KEY_HERE";
+  window.RAZORPAY_KEY = "rzp_live_SWBttpLnFlQHGD";
 
   // Plan prices (in paise — ₹99 = 9900 paise)
   window.PLANS = {
@@ -71,6 +70,9 @@ input,select{font-family:inherit;outline:none}
 #screen-container{flex:1;overflow:hidden;position:relative}
 .screen{position:absolute;inset:0;overflow-y:auto;display:none;flex-direction:column;padding-bottom:calc(64px + var(--safe-bottom))}
 .screen.active{display:flex;animation:fadeUp .25s ease}
+/* Loading screen overrides: no bottom padding, centred content */
+#screen-loading{padding-bottom:0 !important}
+#screen-login{padding-bottom:0 !important}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .inner{max-width:520px;width:100%;margin:0 auto;padding:0 16px}
 
@@ -282,10 +284,13 @@ input,select{font-family:inherit;outline:none}
 <div id="app">
   <div id="screen-container">
 
-    <!-- LOADING -->
-    <div class="screen active" id="screen-loading">
+    <!-- LOADING — id="loading-msg" must match setLoadingMsg() exactly -->
+    <div class="screen active" id="screen-loading"
+         style="align-items:center;justify-content:center;gap:16px;padding-bottom:0">
       <div class="spinner" style="width:36px;height:36px;border-width:4px"></div>
-      <div style="font-size:.85rem;color:var(--muted)" id="loading-msg">Connecting to Firebase...</div>
+      <div style="font-size:.85rem;color:var(--muted);text-align:center" id="loading-msg">
+        Connecting to Firebase...
+      </div>
     </div>
 
     <!-- LOGIN -->
@@ -752,50 +757,79 @@ let auth = null;
 // ================================================================
 // FIREBASE INIT
 // ================================================================
-async function initFirebase() {
+function initFirebase() {
   setLoadingMsg('Connecting to Firebase...');
 
-  // Check if config is filled
+  // ── Hard timeout: if nothing happens in 8s, go to login anyway ──
+  // This is the "loader killer" — prevents infinite "Checking auth..." hang
+  const hardTimeout = setTimeout(() => {
+    console.warn('Firebase init timed out — going to login');
+    navigate('login');
+  }, 8000);
+
+  // ── Check config is filled ──
   const cfg = window.FIREBASE_CONFIG;
   if (!cfg || cfg.apiKey === 'YOUR_API_KEY') {
-    // Show config warning, go to login screen with warning
+    clearTimeout(hardTimeout);
     setLoadingMsg('Firebase not configured');
     setTimeout(() => {
       navigate('login');
-      document.getElementById('firebase-config-warning').style.display = 'block';
-      document.getElementById('google-login-btn').disabled = true;
-      document.getElementById('google-login-btn').textContent = 'Configure Firebase first';
-    }, 1000);
+      const warn = document.getElementById('firebase-config-warning');
+      const btn  = document.getElementById('google-login-btn');
+      if (warn) warn.style.display = 'block';
+      if (btn)  { btn.disabled = true; btn.textContent = 'Configure Firebase first'; }
+    }, 800);
     return;
   }
 
   try {
     firebase.initializeApp(cfg);
     auth = firebase.auth();
-    db = firebase.firestore();
+    db   = firebase.firestore();
 
-    // Enable offline persistence
-    await db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
-    STATE.firestoreReady = true;
-    setLoadingMsg('Checking authentication...');
-
-    // Auth state listener
+    // ── STEP 1: Register auth listener IMMEDIATELY ──────────────
+    // This must come BEFORE any async work (persistence, etc.)
+    // onAuthStateChanged fires as soon as Firebase knows the auth state,
+    // regardless of whether persistence succeeded or not.
     auth.onAuthStateChanged(user => {
+      clearTimeout(hardTimeout);   // auth responded — cancel the safety timeout
+      STATE.firestoreReady = true;
+
       if (user) {
         STATE.user = user;
-        loadUserData(user.uid).then(() => {
-          navigate('home');
-          updateFirebaseStatus(true);
-        });
+        setLoadingMsg('Loading your profile...');
+        loadUserData(user.uid)
+          .then(() => {
+            navigate('home');
+            updateFirebaseStatus(true);
+          })
+          .catch(err => {
+            console.error('loadUserData failed:', err);
+            navigate('home');   // still go home — local fallback in loadUserData
+          });
       } else {
         navigate('login');
       }
     });
 
+    // ── STEP 2: Enable offline persistence in the BACKGROUND ────
+    // Do NOT await this — it can fail silently on GitHub Pages / HTTPS
+    // when multiple tabs are open, and that's perfectly fine.
+    db.enablePersistence({ synchronizeTabs: true })
+      .then(() => console.log('Firestore persistence enabled'))
+      .catch(err => {
+        // code 'failed-precondition' = multiple tabs open → harmless
+        // code 'unimplemented'       = browser doesn't support it → harmless
+        if (err.code !== 'failed-precondition' && err.code !== 'unimplemented') {
+          console.warn('Persistence error (non-critical):', err.code);
+        }
+      });
+
   } catch (err) {
+    clearTimeout(hardTimeout);
     console.error('Firebase init error:', err);
-    setLoadingMsg('Connection error — using local mode');
-    setTimeout(() => navigate('login'), 1500);
+    setLoadingMsg('Connection error — check your Firebase config');
+    setTimeout(() => navigate('login'), 2000);
   }
 }
 
@@ -1107,11 +1141,14 @@ function getUserPlan() {
 // ================================================================
 const MAIN_SCREENS = ['home','ai','leaderboard','analytics','profile'];
 function navigate(screen) {
+  // Hide all screens, show the target
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.getElementById('screen-' + screen);
-  if (!el) return;
+  if (!el) { console.warn('navigate: no screen found for', screen); return; }
   el.classList.add('active');
   el.scrollTop = 0;
+
+  // Bottom nav — only visible on main tabs
   const nav = document.getElementById('bottom-nav');
   if (MAIN_SCREENS.includes(screen)) {
     nav.classList.add('visible');
@@ -1121,13 +1158,15 @@ function navigate(screen) {
   } else {
     nav.classList.remove('visible');
   }
-  if (screen === 'home') renderHome();
-  if (screen === 'analytics') renderAnalytics();
+
+  // Screen-specific initialisation
+  if (screen === 'home')        renderHome();
+  if (screen === 'analytics')   renderAnalytics();
   if (screen === 'leaderboard') renderLeaderboard('weekly');
-  if (screen === 'profile') renderProfile();
-  if (screen === 'subjects') renderAllSubjects();
-  if (screen === 'ai') renderAIScreen();
-  if (screen === 'plans') renderPlans();
+  if (screen === 'profile')     renderProfile();
+  if (screen === 'subjects')    renderAllSubjects();
+  if (screen === 'ai')          renderAIScreen();
+  if (screen === 'plans')       renderPlans();
 }
 
 // ================================================================
