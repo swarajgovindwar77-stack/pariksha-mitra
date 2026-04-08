@@ -768,7 +768,7 @@ async function initFirebase() {
 
   // ── Check config is filled ──
   const cfg = window.FIREBASE_CONFIG;
-  if (!cfg || cfg.apiKey === 'YOUR_API_KEY' || cfg.apiKey === 'AIzaSyC6fttiqCfV2QjRFAse5-mrbi0wBio5rIU_REPLACE') {
+  if (!cfg || cfg.apiKey === 'YOUR_API_KEY') {
     clearTimeout(hardTimeout);
     setLoadingMsg('Firebase not configured');
     setTimeout(() => {
