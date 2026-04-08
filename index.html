@@ -758,75 +758,67 @@ let auth = null;
 // FIREBASE INIT
 // ================================================================
 async function initFirebase() {
-  setLoadingMsg('Connecting to Firebase...');
+  setLoadingMsg('Connecting to ParikshaMitra...');
 
-  // ── Hard timeout: if nothing happens in 8s, go to login anyway ──
-  const hardTimeout = setTimeout(() => {
-    console.warn('Firebase init timed out — going to login');
+  // --- FAILSFAFE: Kill the loader after 4 seconds no matter what ---
+  const failsafe = setTimeout(() => {
+    console.warn("Firebase check timed out - showing login screen");
     navigate('login');
-  }, 8000);
+  }, 4000);
 
-  // ── Check config is filled ──
   const cfg = window.FIREBASE_CONFIG;
   if (!cfg || cfg.apiKey === 'YOUR_API_KEY') {
-    clearTimeout(hardTimeout);
-    setLoadingMsg('Firebase not configured');
-    setTimeout(() => {
-      navigate('login');
-      const warn = document.getElementById('firebase-config-warning');
-      const btn  = document.getElementById('google-login-btn');
-      if (warn) warn.style.display = 'block';
-      if (btn)  { btn.disabled = true; btn.textContent = 'Configure Firebase first'; }
-    }, 800);
+    clearTimeout(failsafe);
+    navigate('login');
     return;
   }
 
   try {
     firebase.initializeApp(cfg);
     auth = firebase.auth();
-    db   = firebase.firestore();
+    db = firebase.firestore();
 
-    // ── NEW STEP: Catch the result after Google Redirect ──────────
-    // This handles the user coming back to the site after signing in.
-    await auth.getRedirectResult().catch(err => {
-        console.error("Redirect Error:", err);
-    });
+    // Handle return from Google Redirect
+    await auth.getRedirectResult().catch(e => console.error("Redirect Error:", e));
 
-    // ── STEP 1: Register auth listener IMMEDIATELY ──────────────
     auth.onAuthStateChanged(user => {
-      clearTimeout(hardTimeout);
-      STATE.firestoreReady = true;
-
+      clearTimeout(failsafe); // Stop the 4s timer if auth responds
+      
       if (user) {
         STATE.user = user;
         setLoadingMsg('Loading your profile...');
         loadUserData(user.uid)
-          .then(() => {
-            navigate('home');
-            updateFirebaseStatus(true);
-          })
-          .catch(err => {
-            console.error('loadUserData failed:', err);
-            navigate('home');
-          });
+          .then(() => navigate('home'))
+          .catch(() => navigate('home'));
       } else {
         navigate('login');
       }
     });
 
-    // ── STEP 2: Enable offline persistence ──────────────────────
-    db.enablePersistence({ synchronizeTabs: true })
-      .catch(err => {
-        if (err.code !== 'failed-precondition' && err.code !== 'unimplemented') {
-          console.warn('Persistence error:', err.code);
-        }
-      });
+    // We call persistence but don't 'await' it, so it won't block the app
+    db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 
   } catch (err) {
-    clearTimeout(hardTimeout);
-    console.error('Firebase init error:', err);
-    setLoadingMsg('Connection error');
-    setTimeout(() => navigate('login'), 2000);
+    clearTimeout(failsafe);
+    console.error("Firebase Init Error:", err);
+    navigate('login');
+  }
+}
+
+async function signInWithGoogle() {
+  const btn = document.getElementById('google-login-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner spinner-sm"></div> Signing in...';
+
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    // Redirect is much more stable for GitHub Pages
+    await firebase.auth().signInWithRedirect(provider);
+  } catch (err) {
+    console.error('Sign in error:', err);
+    btn.disabled = false;
+    btn.innerHTML = `Continue with Google`;
+    showToast("Login failed. Please try again.");
   }
 }
 
