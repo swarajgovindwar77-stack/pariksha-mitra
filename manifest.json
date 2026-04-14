@@ -2,19 +2,19 @@
   "name": "ParikshaMitra — Competitive Exam Prep",
   "short_name": "ParikshaMitra",
   "description": "AI-powered MCQ prep for MPSC, UPSC, SSC & all competitive exams with Firebase sync and Razorpay subscriptions.",
-  "start_url": "./index.html",
+  "start_url": "/pariksha-mitra/index.html",
+  "scope": "/pariksha-mitra/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0B0E1A",
   "theme_color": "#F5A623",
   "lang": "en",
-  "scope": "./",
   "categories": ["education", "productivity"],
   "icons": [
-    { "src": "./icons/icon-192.png", "sizes": "72x72", "type": "image/png", "purpose": "maskable any" },
-    { "src": "./icons/icon-192.png", "sizes": "96x96", "type": "image/png", "purpose": "maskable any" },
-    { "src": "./icons/icon-192.png", "sizes": "128x128", "type": "image/png", "purpose": "maskable any" },
-    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable any" },
-    { "src": "./icons/icon-192.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable any" }
+    { "src": "/pariksha-mitra/icons/icon-72.png",  "sizes": "72x72",   "type": "image/png", "purpose": "maskable any" },
+    { "src": "/pariksha-mitra/icons/icon-96.png",  "sizes": "96x96",   "type": "image/png", "purpose": "maskable any" },
+    { "src": "/pariksha-mitra/icons/icon-128.png", "sizes": "128x128", "type": "image/png", "purpose": "maskable any" },
+    { "src": "/pariksha-mitra/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable any" },
+    { "src": "/pariksha-mitra/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable any" }
   ]
 }
