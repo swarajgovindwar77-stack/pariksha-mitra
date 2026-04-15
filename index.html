@@ -10,8 +10,6 @@
 
 <!-- ══════════════════════════════════════════════
      STEP 1: Replace these with YOUR Firebase config
-     Go to: console.firebase.google.com
-     → Your Project → Project Settings → Your apps → SDK setup
      ══════════════════════════════════════════════ -->
 <script>
   window.FIREBASE_CONFIG = {
@@ -25,9 +23,7 @@
 </script>
 
 <!-- ══════════════════════════════════════════════
-     STEP 2: Replace with YOUR Razorpay Key ID
-     Go to: dashboard.razorpay.com → Settings → API Keys
-     Use TEST key during development, LIVE key when publishing
+     STEP 2: Razorpay Config
      ══════════════════════════════════════════════ -->
 <script>
   window.RAZORPAY_KEY = "rzp_live_SWBttpLnFlQHGD";
@@ -805,23 +801,6 @@ async function initFirebase() {
   }
 }
 
-async function signInWithGoogle() {
-  const btn = document.getElementById('google-login-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<div class="spinner spinner-sm"></div> Signing in...';
-
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    // Redirect is much more stable for GitHub Pages
-    await firebase.auth().signInWithRedirect(provider);
-  } catch (err) {
-    console.error('Sign in error:', err);
-    btn.disabled = false;
-    btn.innerHTML = `Continue with Google`;
-    showToast("Login failed. Please try again.");
-  }
-}
-
 function setLoadingMsg(msg) {
   const el = document.getElementById('loading-msg');
   if (el) el.textContent = msg;
@@ -1044,13 +1023,13 @@ async function startPayment(planKey) {
   const plan = window.PLANS[planKey];
   if (!plan) return;
 
-  if (window.RAZORPAY_KEY === 'rzp_live_SWBttpLnFlQHGD') {
-    // Demo mode — activate without real payment
+  // FIXED LOGIC: Only show demo mode if the key is missing or is the placeholder
+  if (window.RAZORPAY_KEY === 'rzp_test_YOUR_KEY_HERE' || !window.RAZORPAY_KEY) {
     openModal(`<div style="text-align:center;padding:8px 0">
       <div style="font-size:2rem;margin-bottom:12px">⚙️</div>
       <div style="font-size:1rem;font-weight:600;margin-bottom:8px">Razorpay Not Configured</div>
       <div style="font-size:.82rem;color:var(--muted);margin-bottom:20px">
-        Add your Razorpay Key ID at the top of index.html.<br>For now, activating Pro in demo mode.
+        Add your Razorpay Key ID at the top of index.html.
       </div>
       <button class="btn btn-primary btn-full" style="margin-bottom:10px" onclick="activateProDemo('${planKey}')">✅ Activate ${plan.label} (Demo)</button>
       <button class="btn btn-outline btn-full" onclick="closeModal()">Cancel</button>
@@ -1075,8 +1054,6 @@ async function startPayment(planKey) {
     },
     theme: { color: '#F5A623' },
     handler: async function(response) {
-      // Payment succeeded — call your backend to verify + update Firestore
-      // See: functions/index.js for the webhook handler
       showToast('Payment successful! Activating...', 3000);
       await activatePlanAfterPayment(planKey, response.razorpay_payment_id);
     },
@@ -1090,8 +1067,6 @@ async function startPayment(planKey) {
 }
 
 async function activatePlanAfterPayment(planKey, paymentId) {
-  // In production: your backend (Cloud Function) verifies payment and sets this
-  // Here we update Firestore directly (safe since payment already verified by Razorpay)
   const expiry = new Date();
   if (planKey === 'pro') expiry.setMonth(expiry.getMonth() + 1);
   if (planKey === 'premium') expiry.setFullYear(expiry.getFullYear() + 1);
@@ -1132,6 +1107,9 @@ function getUserPlan() {
 // ================================================================
 const MAIN_SCREENS = ['home','ai','leaderboard','analytics','profile'];
 function navigate(screen) {
+  // 1. FORCE the loader to hide (fixes the !important CSS bug)
+  document.getElementById('screen-loading').style.setProperty('display', 'none', 'important');
+  
   // Hide all screens, show the target
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.getElementById('screen-' + screen);
@@ -1397,7 +1375,7 @@ async function submitQuiz() {
   setTimeout(() => { document.getElementById('result-arc').style.strokeDashoffset = offset; }, 100);
   document.getElementById('result-arc').style.stroke = pct>=80?'var(--green)':pct>=50?'var(--accent)':'var(--red)';
   document.getElementById('result-pct').textContent = pct + '%';
-  const msg = pct>=80?['Excellent! 🏆','Outstanding! You are exam-ready.']:pct>=60?['Good Job! 👍','Solid attempt. Revise weak areas.']:pct>=40?['Keep Going! 💪','Consistency is key. Practice more.']:['Don\'t Give Up! 🔄','Review and retry — you\'ll improve.'];
+  const msg = pct>=80?['Excellent! 🏆','Outstanding! You are exam-ready.']:pct>=60?['Good Job! 👍','Solid attempt. Revise weak areas.']:pct>=40?['Keep Going! 💪','Consistency is key. Practice more.']:['Don't Give Up! 🔄','Review and retry — you'll improve.'];
   document.getElementById('result-title').textContent = msg[0];
   document.getElementById('result-sub').textContent = msg[1];
   document.getElementById('res-correct').textContent = correct;
